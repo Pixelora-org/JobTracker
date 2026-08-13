@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pipeline
 
-## Getting Started
+A job search tracker: applications, outreach, resume versions, a daily plan, and follow-ups.
 
-First, run the development server:
+Paste a posting into Quick add and it fills the form. Every application has an outreach panel. A strategy counts itself from what you already log.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Built with Next.js, Clerk, Supabase, and Gemini.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Create a [Clerk](https://dashboard.clerk.com) application. Enable email and Google. Under **Configure → Integrations → Supabase**, activate the integration and copy the **Clerk domain**.
+2. In Clerk, **Sessions → Customize session token**, add `"email": "{{user.primary_email_address}}"` so existing data can be claimed by email.
+3. In Supabase, **Authentication → Sign In / Providers → Third-party**, add Clerk and paste that domain.
+4. Run `supabase/schema.sql` in the SQL editor (safe to re-run). This also switches `user_id` to Clerk ids.
+5. Copy `.env.local.example` to `.env.local` and fill in Clerk + Supabase keys. Optional: Gemini and Apollo.
+6. `npm install` then `npm run dev`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000). The landing is public. After sign-in you land on `/board`.
 
-## Learn More
+Gemini and Apollo run on the instance keys, capped per user per day (40 AI calls, 15 email reveals) so one account cannot drain the pool.
 
-To learn more about Next.js, take a look at the following resources:
+## Going public
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set `NEXT_PUBLIC_APP_URL` to the production URL before you share the LinkedIn post, so Open Graph tags resolve. After deploy, add the production origin in the Clerk dashboard (Allowed origins / redirect URLs).

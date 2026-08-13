@@ -1,0 +1,270 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { deleteApplicationAction } from "@/lib/actions/applications";
+import { deleteTouchpointAction } from "@/lib/actions/touchpoints";
+import { STATUS_COLORS } from "@/lib/constants";
+import type { Application, Touchpoint } from "@/lib/types";
+import { cn, daysSince, isStale } from "@/lib/utils";
+import { useAppShell } from "@/components/app-shell-provider";
+import { OutreachPanel } from "@/components/outreach-panel";
+import { TouchpointForm } from "@/components/touchpoint-form";
+import { Button, ErrorBanner, MicroLabel, StatusPill } from "@/components/ui";
+
+export function ApplicationDetail({
+  application,
+  touchpoints,
+  apolloEnabled,
+  aiEnabled,
+}: {
+  application: Application;
+  touchpoints: Touchpoint[];
+  apolloEnabled: boolean;
+  aiEnabled: boolean;
+}) {
+  const router = useRouter();
+  const { openEditApplication } = useAppShell();
+  const [error, setError] = useState<string | null>(null);
+  const [showFullNotes, setShowFullNotes] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const stale = isStale(application);
+  const days = daysSince(application.updatedAt);
+
+  function onDelete() {
+    if (!confirm("Delete this application? This cannot be undone.")) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteApplicationAction(application.id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.push("/applications");
+      router.refresh();
+    });
+  }
+
+  function onDeleteTouchpoint(id: string) {
+    if (!confirm("Delete this touchpoint?")) return;
+    startTransition(async () => {
+      const result = await deleteTouchpointAction(id, application.id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mx-auto max-w-[1240px] space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <Link
+            href="/applications"
+            className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted hover:text-text"
+          >
+            ← Applications
+          </Link>
+          <h1 className="mt-2 text-2xl font-medium tracking-tight text-text">
+            {application.company}
+          </h1>
+          <p className="mt-1 text-muted">{application.role}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <StatusPill
+              status={application.status}
+              color={STATUS_COLORS[application.status]}
+            />
+            <span className="font-mono text-[11px] text-muted">
+              {application.track}
+            </span>
+            {stale ? (
+              <span className="font-mono text-[10px] uppercase text-stale">
+                stale · {days}d
+              </span>
+            ) : (
+              <span className="font-mono text-[11px] text-muted">
+                updated {days === null ? "-" : `${days}d`} ago
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => openEditApplication(application)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            disabled={pending}
+            onClick={onDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+
+      {error ? <ErrorBanner message={error} /> : null}
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+        <aside className="space-y-4 lg:order-2 lg:sticky lg:top-[84px] lg:self-start">
+          <section className="rounded-lg border border-border bg-surface p-4">
+            <MicroLabel>Details</MicroLabel>
+            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2">
+              {(
+                [
+                  ["Source", application.source],
+                  ["Resume", application.resumeVersion || "-"],
+                  ["Location", application.location || "-"],
+                  ["Work mode", application.workMode || "-"],
+                  [
+                    "Applied",
+                    application.dateApplied
+                      ? application.dateApplied.slice(0, 10)
+                      : "-",
+                  ],
+                  [
+                    "Next action",
+                    application.nextActionDate
+                      ? application.nextActionDate.slice(0, 10)
+                      : "-",
+                  ],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label}>
+                  <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 text-sm text-text">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            {application.jobUrl ? (
+              <p className="mt-4 text-sm">
+                <a
+                  href={application.jobUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  Open job posting ↗
+                </a>
+              </p>
+            ) : null}
+            {application.notes ? (
+              <div className="mt-4 border-t border-border pt-4">
+                <MicroLabel>Notes</MicroLabel>
+                <p
+                  className={cn(
+                    "mt-2 whitespace-pre-wrap text-sm text-text",
+                    !showFullNotes && "line-clamp-6",
+                  )}
+                >
+                  {application.notes}
+                </p>
+                {application.notes.length > 320 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowFullNotes((v) => !v)}
+                    className="mt-2 font-mono text-[11px] text-accent hover:underline"
+                  >
+                    {showFullNotes ? "Show less" : "Show full posting"}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+        </aside>
+
+        <div className="space-y-5 lg:order-1">
+          <OutreachPanel
+            application={application}
+            apolloEnabled={apolloEnabled}
+            aiEnabled={aiEnabled}
+          />
+
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-base font-medium">
+                Touchpoints
+                <span className="ml-2 font-mono text-[11px] text-muted">
+                  {touchpoints.length}
+                </span>
+              </h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowManualForm((v) => !v)}
+              >
+                {showManualForm ? "Close" : "Log manually"}
+              </Button>
+            </div>
+            {showManualForm ? (
+              <TouchpointForm
+                applicationId={application.id}
+                defaultCompany={application.company}
+                onDone={() => setShowManualForm(false)}
+              />
+            ) : null}
+            <ul className="space-y-2">
+              {touchpoints.map((t) => (
+                <li
+                  key={t.id}
+                  className="rounded-lg border border-border bg-surface px-4 py-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {t.contactName}
+                        {t.contactTitle ? (
+                          <span className="ml-2 text-xs font-normal text-muted">
+                            {t.contactTitle}
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className="mt-0.5 font-mono text-[11px] text-muted">
+                        {t.channel} · {t.type} · {t.status} ·{" "}
+                        {t.date.slice(0, 10)}
+                      </p>
+                      {t.contactEmail ? (
+                        <p className="mt-0.5 font-mono text-[11px] text-accent">
+                          {t.contactEmail}
+                        </p>
+                      ) : null}
+                      {t.notes ? (
+                        <p className="mt-2 text-sm text-muted">{t.notes}</p>
+                      ) : null}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => onDeleteTouchpoint(t.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </li>
+              ))}
+              {touchpoints.length === 0 ? (
+                <li className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted">
+                  No outreach logged yet. Draft a message above, then log it as
+                  sent.
+                </li>
+              ) : null}
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
