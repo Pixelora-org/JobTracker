@@ -29,6 +29,3 @@ export const STALE_DAYS = 10;
 
 /** Days after an outreach touchpoint before a follow-up is due. */
 export const DEFAULT_FOLLOW_UP_DAYS = 3;
-
-/** Set when the first-run redirect to the strategy page is declined. */
-export const SKIP_STRATEGY_COOKIE = "pipeline_skip_strategy";

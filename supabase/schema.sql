@@ -3,7 +3,7 @@
 
 create table if not exists public.applications (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id text not null,
   company text not null,
   role text not null,
   job_url text,
@@ -34,7 +34,7 @@ create table if not exists public.applications (
 
 create table if not exists public.touchpoints (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id text not null,
   application_id uuid references public.applications (id) on delete set null,
   contact_name text not null,
   company text not null,
@@ -81,7 +81,7 @@ alter table public.touchpoints
 
 create table if not exists public.resumes (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id text not null,
   label text not null,
   file_name text not null,
   file_path text not null,
@@ -94,7 +94,7 @@ create table if not exists public.resumes (
 -- Activity goals. Targets live in phases so a plan can ramp week over week.
 create table if not exists public.strategies (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id text not null,
   name text not null,
   status text not null default 'active' check (status in ('active', 'archived')),
   start_date date not null default current_date,
@@ -172,169 +172,62 @@ alter table public.touchpoints enable row level security;
 alter table public.resumes enable row level security;
 alter table public.strategies enable row level security;
 
-drop policy if exists "Users read own applications" on public.applications;
-create policy "Users read own applications"
-  on public.applications for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-drop policy if exists "Users insert own applications" on public.applications;
-create policy "Users insert own applications"
-  on public.applications for insert
-  to authenticated
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users update own applications" on public.applications;
-create policy "Users update own applications"
-  on public.applications for update
-  to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users delete own applications" on public.applications;
-create policy "Users delete own applications"
-  on public.applications for delete
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-drop policy if exists "Users read own touchpoints" on public.touchpoints;
-create policy "Users read own touchpoints"
-  on public.touchpoints for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-drop policy if exists "Users insert own touchpoints" on public.touchpoints;
-create policy "Users insert own touchpoints"
-  on public.touchpoints for insert
-  to authenticated
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users update own touchpoints" on public.touchpoints;
-create policy "Users update own touchpoints"
-  on public.touchpoints for update
-  to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users delete own touchpoints" on public.touchpoints;
-create policy "Users delete own touchpoints"
-  on public.touchpoints for delete
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-drop policy if exists "Users read own resumes" on public.resumes;
-create policy "Users read own resumes"
-  on public.resumes for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-drop policy if exists "Users insert own resumes" on public.resumes;
-create policy "Users insert own resumes"
-  on public.resumes for insert
-  to authenticated
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users update own resumes" on public.resumes;
-create policy "Users update own resumes"
-  on public.resumes for update
-  to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users delete own resumes" on public.resumes;
-create policy "Users delete own resumes"
-  on public.resumes for delete
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-drop policy if exists "Users read own strategies" on public.strategies;
-create policy "Users read own strategies"
-  on public.strategies for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-drop policy if exists "Users insert own strategies" on public.strategies;
-create policy "Users insert own strategies"
-  on public.strategies for insert
-  to authenticated
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users update own strategies" on public.strategies;
-create policy "Users update own strategies"
-  on public.strategies for update
-  to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
-
-drop policy if exists "Users delete own strategies" on public.strategies;
-create policy "Users delete own strategies"
-  on public.strategies for delete
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
 -- Resume files. Private bucket; each user owns the folder named after their id.
 insert into storage.buckets (id, name, public)
 values ('resumes', 'resumes', false)
 on conflict (id) do nothing;
 
-drop policy if exists "Users read own resume files" on storage.objects;
-create policy "Users read own resume files"
-  on storage.objects for select
-  to authenticated
-  using (
-    bucket_id = 'resumes'
-    and (select auth.uid())::text = (storage.foldername(name))[1]
-  );
-
-drop policy if exists "Users upload own resume files" on storage.objects;
-create policy "Users upload own resume files"
-  on storage.objects for insert
-  to authenticated
-  with check (
-    bucket_id = 'resumes'
-    and (select auth.uid())::text = (storage.foldername(name))[1]
-  );
-
-drop policy if exists "Users delete own resume files" on storage.objects;
-create policy "Users delete own resume files"
-  on storage.objects for delete
-  to authenticated
-  using (
-    bucket_id = 'resumes'
-    and (select auth.uid())::text = (storage.foldername(name))[1]
-  );
-
 -- ---------------------------------------------------------------------------
 -- Clerk. Session tokens replace Supabase Auth. Clerk ids are text (user_2…),
 -- not uuids, and they do not live in auth.users, so the FKs have to go.
--- Policies that mention user_id must be dropped before the type change.
+-- Drop every policy first: leftover auth.uid() = user_id policies fail with
+-- "operator does not exist: uuid = text" once user_id is already text.
 -- ---------------------------------------------------------------------------
-drop policy if exists "Users read own applications" on public.applications;
-drop policy if exists "Users insert own applications" on public.applications;
-drop policy if exists "Users update own applications" on public.applications;
-drop policy if exists "Users delete own applications" on public.applications;
-drop policy if exists "Users read own touchpoints" on public.touchpoints;
-drop policy if exists "Users insert own touchpoints" on public.touchpoints;
-drop policy if exists "Users update own touchpoints" on public.touchpoints;
-drop policy if exists "Users delete own touchpoints" on public.touchpoints;
-drop policy if exists "Users read own resumes" on public.resumes;
-drop policy if exists "Users insert own resumes" on public.resumes;
-drop policy if exists "Users update own resumes" on public.resumes;
-drop policy if exists "Users delete own resumes" on public.resumes;
-drop policy if exists "Users read own strategies" on public.strategies;
-drop policy if exists "Users insert own strategies" on public.strategies;
-drop policy if exists "Users update own strategies" on public.strategies;
-drop policy if exists "Users delete own strategies" on public.strategies;
+do $$
+declare
+  pol record;
+begin
+  for pol in
+    select schemaname, tablename, policyname
+    from pg_policies
+    where (schemaname = 'public' and tablename in (
+            'applications', 'touchpoints', 'resumes', 'strategies', 'usage_counters'
+          ))
+       or (schemaname = 'storage' and tablename = 'objects' and policyname like '%resume%')
+  loop
+    execute format(
+      'drop policy if exists %I on %I.%I',
+      pol.policyname, pol.schemaname, pol.tablename
+    );
+  end loop;
+end $$;
 
 alter table public.applications drop constraint if exists applications_user_id_fkey;
 alter table public.touchpoints drop constraint if exists touchpoints_user_id_fkey;
 alter table public.resumes drop constraint if exists resumes_user_id_fkey;
 alter table public.strategies drop constraint if exists strategies_user_id_fkey;
 
-alter table public.applications alter column user_id type text using user_id::text;
-alter table public.touchpoints alter column user_id type text using user_id::text;
-alter table public.resumes alter column user_id type text using user_id::text;
-alter table public.strategies alter column user_id type text using user_id::text;
+do $$
+declare
+  tbl text;
+begin
+  foreach tbl in array array['applications', 'touchpoints', 'resumes', 'strategies']
+  loop
+    if exists (
+      select 1
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = tbl
+        and column_name = 'user_id'
+        and data_type = 'uuid'
+    ) then
+      execute format(
+        'alter table public.%I alter column user_id type text using user_id::text',
+        tbl
+      );
+    end if;
+  end loop;
+end $$;
 
 alter table public.applications
   alter column user_id set default (auth.jwt()->>'sub');

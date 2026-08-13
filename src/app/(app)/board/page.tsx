@@ -1,6 +1,4 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { FunnelStrip } from "@/components/funnel-strip";
 import { KanbanBoard } from "@/components/kanban-board";
 import { TodayStrip } from "@/components/today-strip";
@@ -9,7 +7,6 @@ import { listActivitySince } from "@/lib/data/activity";
 import { listApplications } from "@/lib/data/applications";
 import { getActiveStrategy } from "@/lib/data/strategies";
 import { computeProgress, type StrategyProgress } from "@/lib/strategy/progress";
-import { SKIP_STRATEGY_COOKIE } from "@/lib/constants";
 import { friendlyDataError } from "@/lib/supabase/errors";
 import { AddApplicationButton } from "@/components/add-application-button";
 import type { Application, Strategy } from "@/lib/types";
@@ -41,12 +38,6 @@ export default async function DashboardPage() {
     progress = null;
   }
 
-  const skipped =
-    (await cookies()).get(SKIP_STRATEGY_COOKIE)?.value === "1";
-  if (!loadError && !strategy && !skipped && applications.length === 0) {
-    redirect("/strategy");
-  }
-
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -66,12 +57,6 @@ export default async function DashboardPage() {
           title="Couldn’t load pipeline"
           description={friendlyDataError(loadError)}
         />
-      ) : applications.length === 0 ? (
-        <EmptyState
-          title="No applications yet"
-          description="Log your first role: company, role, status, and resume version. Under 15 seconds."
-          action={<AddApplicationButton />}
-        />
       ) : (
         <>
           {progress ? (
@@ -90,8 +75,19 @@ export default async function DashboardPage() {
               </span>
             </Link>
           )}
-          <FunnelStrip applications={applications} />
-          <KanbanBoard initialApplications={applications} />
+
+          {applications.length === 0 ? (
+            <EmptyState
+              title="No applications yet"
+              description="This is the kanban. Add a role and it lands in a column. Strategy is a separate page for daily volume."
+              action={<AddApplicationButton />}
+            />
+          ) : (
+            <>
+              <FunnelStrip applications={applications} />
+              <KanbanBoard initialApplications={applications} />
+            </>
+          )}
         </>
       )}
     </div>
