@@ -177,14 +177,31 @@ export function FriendsPanel({
           </p>
         ) : (
           <ul className="space-y-2">
-            {accepted.map((f) => (
-              <li
-                key={f.id}
-                className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text"
-              >
-                {otherPartyHandle(userId, f) ?? "Friend"}
-              </li>
-            ))}
+            {accepted.map((f) => {
+              const who = otherPartyHandle(userId, f) ?? "Friend";
+              return (
+                <li
+                  key={f.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text"
+                >
+                  {who}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={busyId === f.id}
+                    onClick={() => {
+                      const ok = confirm(
+                        `Remove ${who}? Threads you already share stay put, but neither of you can share new jobs.`
+                      );
+                      if (ok) run(f.id, ignoreFriendAction);
+                    }}
+                  >
+                    {busyId === f.id ? "Removing…" : "Remove"}
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

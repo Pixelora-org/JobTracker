@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
+import { deleteApplicationAction } from "@/lib/actions/applications";
 import { saveListingAction, searchJobsAction } from "@/lib/actions/jobs";
 import type { JobListing } from "@/lib/jobs/search";
 import {
@@ -111,6 +112,25 @@ export function JobSearch({
         return;
       }
       setSaved((prev) => ({ ...prev, [listing.id]: result.data.id }));
+      router.refresh();
+    });
+  }
+
+  function unsave(listingId: string, applicationId: string) {
+    setError(null);
+    setSavingId(listingId);
+    startSave(async () => {
+      const result = await deleteApplicationAction(applicationId);
+      setSavingId(null);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSaved((prev) => {
+        const next = { ...prev };
+        delete next[listingId];
+        return next;
+      });
       router.refresh();
     });
   }
@@ -365,12 +385,23 @@ export function JobSearch({
                     </a>
                   ) : null}
                   {savedId ? (
-                    <a
-                      href={`/applications/${savedId}`}
-                      className="inline-flex h-8 items-center rounded-md bg-accent-soft px-3 text-sm text-accent"
-                    >
-                      On board
-                    </a>
+                    <>
+                      <a
+                        href={`/applications/${savedId}`}
+                        className="inline-flex h-8 items-center rounded-md bg-accent-soft px-3 text-sm text-accent"
+                      >
+                        On board
+                      </a>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={saving && savingId === listing.id}
+                        onClick={() => unsave(listing.id, savedId)}
+                      >
+                        {savingId === listing.id ? "Removing…" : "Remove"}
+                      </Button>
+                    </>
                   ) : (
                     <Button
                       type="button"

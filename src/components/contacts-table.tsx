@@ -1,21 +1,48 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { deleteTouchpointAction } from "@/lib/actions/touchpoints";
 import {
   CHANNELS,
   TOUCHPOINT_STATUSES,
   type Touchpoint,
 } from "@/lib/types";
-import { MicroLabel, Select } from "@/components/ui";
+import { Button, ErrorBanner, MicroLabel, Select } from "@/components/ui";
 
 export function ContactsTable({
   touchpoints,
 }: {
   touchpoints: Touchpoint[];
 }) {
+  const router = useRouter();
   const [channel, setChannel] = useState("");
   const [status, setStatus] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  function remove(touchpoint: Touchpoint) {
+    const ok = confirm(
+      `Delete the ${touchpoint.channel.toLowerCase()} to ${touchpoint.contactName}? Any follow-up reminder on it goes too.`
+    );
+    if (!ok) return;
+    setError(null);
+    setBusyId(touchpoint.id);
+    startTransition(async () => {
+      const result = await deleteTouchpointAction(
+        touchpoint.id,
+        touchpoint.applicationId
+      );
+      setBusyId(null);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   const rows = useMemo(() => {
     return touchpoints.filter((t) => {
@@ -27,6 +54,7 @@ export function ContactsTable({
 
   return (
     <div className="space-y-4">
+      {error ? <ErrorBanner message={error} /> : null}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:max-w-md">
         <label className="flex flex-col gap-1">
           <MicroLabel>Channel</MicroLabel>
@@ -92,17 +120,26 @@ export function ContactsTable({
                   <td className="px-3 py-2.5 font-mono text-[11px] text-muted">
                     {t.status}
                   </td>
-                  <td className="px-3 py-2.5 text-right">
-                    {t.applicationId ? (
-                      <Link
-                        href={`/applications/${t.applicationId}`}
-                        className="text-sm text-accent hover:underline"
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center justify-end gap-2">
+                      {t.applicationId ? (
+                        <Link
+                          href={`/applications/${t.applicationId}`}
+                          className="text-sm text-accent hover:underline"
+                        >
+                          App
+                        </Link>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={busyId === t.id}
+                        onClick={() => remove(t)}
                       >
-                        App
-                      </Link>
-                    ) : (
-                      <span className="text-muted">-</span>
-                    )}
+                        {busyId === t.id ? "Deleting…" : "Delete"}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

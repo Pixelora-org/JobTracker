@@ -1,12 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { deleteApplicationAction } from "@/lib/actions/applications";
 import { STATUS_COLORS } from "@/lib/constants";
 import { SOURCES, STATUSES, TRACKS, type Application } from "@/lib/types";
 import { cn, daysSince, isStale } from "@/lib/utils";
 import { useAppShell } from "@/components/app-shell-provider";
-import { Button, MicroLabel, Select, StatusPill } from "@/components/ui";
+import {
+  Button,
+  ErrorBanner,
+  MicroLabel,
+  Select,
+  StatusPill,
+} from "@/components/ui";
 
 type SortKey = "company" | "role" | "status" | "dateApplied" | "updated";
 
@@ -15,8 +23,12 @@ export function ApplicationsTable({
 }: {
   applications: Application[];
 }) {
+  const router = useRouter();
   const { searchQuery, openEditApplication, openCreateApplication } =
     useAppShell();
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const [status, setStatus] = useState("");
   const [track, setTrack] = useState("");
   const [source, setSource] = useState("");
@@ -63,6 +75,24 @@ export function ApplicationsTable({
     return list;
   }, [applications, searchQuery, status, track, source, sortKey, sortDir]);
 
+  function remove(app: Application) {
+    const ok = confirm(
+      `Delete ${app.company} — ${app.role}? Logged outreach stays under Outreach, but is no longer tied to this role.`
+    );
+    if (!ok) return;
+    setError(null);
+    setBusyId(app.id);
+    startTransition(async () => {
+      const result = await deleteApplicationAction(app.id);
+      setBusyId(null);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -74,6 +104,7 @@ export function ApplicationsTable({
 
   return (
     <div className="space-y-4">
+      {error ? <ErrorBanner message={error} /> : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-2">
           <label className="flex flex-col gap-1">
@@ -201,15 +232,27 @@ export function ApplicationsTable({
                     <td className="px-3 py-2.5 font-mono text-[11px] text-muted">
                       {app.track}
                     </td>
-                    <td className="px-3 py-2.5 text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditApplication(app)}
-                      >
-                        Edit
-                      </Button>
+                    <td className="px-3 py-2.5">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={busyId === app.id}
+                          onClick={() => openEditApplication(app)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={busyId === app.id}
+                          onClick={() => remove(app)}
+                        >
+                          {busyId === app.id ? "Deleting…" : "Delete"}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
