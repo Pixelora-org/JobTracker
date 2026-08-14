@@ -8,6 +8,7 @@ import { STATUS_COLORS } from "@/lib/constants";
 import { SOURCES, STATUSES, TRACKS, type Application } from "@/lib/types";
 import { cn, daysSince, isStale } from "@/lib/utils";
 import { useAppShell } from "@/components/app-shell-provider";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Button,
   ErrorBanner,
@@ -34,6 +35,7 @@ export function ApplicationsTable({
   const [source, setSource] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("updated");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [pendingDelete, setPendingDelete] = useState<Application | null>(null);
 
   const rows = useMemo(() => {
     let list = [...applications];
@@ -76,15 +78,12 @@ export function ApplicationsTable({
   }, [applications, searchQuery, status, track, source, sortKey, sortDir]);
 
   function remove(app: Application) {
-    const ok = confirm(
-      `Delete ${app.company} — ${app.role}? Logged outreach stays under Outreach, but is no longer tied to this role.`
-    );
-    if (!ok) return;
     setError(null);
     setBusyId(app.id);
     startTransition(async () => {
       const result = await deleteApplicationAction(app.id);
       setBusyId(null);
+      setPendingDelete(null);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -248,7 +247,7 @@ export function ApplicationsTable({
                           variant="ghost"
                           size="sm"
                           disabled={busyId === app.id}
-                          onClick={() => remove(app)}
+                          onClick={() => setPendingDelete(app)}
                         >
                           {busyId === app.id ? "Deleting…" : "Delete"}
                         </Button>
@@ -261,6 +260,27 @@ export function ApplicationsTable({
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={
+          pendingDelete
+            ? `Delete ${pendingDelete.company}?`
+            : "Delete application?"
+        }
+        description={
+          pendingDelete
+            ? `${pendingDelete.role}. Logged outreach stays under Outreach, but is no longer tied to this role.`
+            : ""
+        }
+        busy={busyId === pendingDelete?.id}
+        onCancel={() => {
+          if (!busyId) setPendingDelete(null);
+        }}
+        onConfirm={() => {
+          if (pendingDelete) remove(pendingDelete);
+        }}
+      />
     </div>
   );
 }

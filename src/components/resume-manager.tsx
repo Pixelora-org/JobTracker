@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { RESUME_BUCKET, type Resume } from "@/lib/types";
 import type { ResumeInsight, ResumeVersionStats } from "@/lib/resume-stats";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button, ErrorBanner, Field, Input, MicroLabel, Textarea } from "@/components/ui";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -101,6 +102,10 @@ export function ResumeManager({
   const [uploading, setUploading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   async function upload(e: React.FormEvent) {
     e.preventDefault();
@@ -171,13 +176,13 @@ export function ResumeManager({
     });
   }
 
-  function remove(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? The file is removed too.`)) return;
+  function remove(id: string) {
     setError(null);
     setBusyId(id);
     startTransition(async () => {
       const result = await deleteResumeAction(id);
       setBusyId(null);
+      setPendingDelete(null);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -319,7 +324,9 @@ export function ResumeManager({
                       variant="ghost"
                       size="sm"
                       disabled={busy}
-                      onClick={() => remove(resume.id, resume.label)}
+                      onClick={() =>
+                        setPendingDelete({ id: resume.id, name: resume.label })
+                      }
                     >
                       Delete
                     </Button>
@@ -330,6 +337,23 @@ export function ResumeManager({
           })}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={
+          pendingDelete
+            ? `Delete ${pendingDelete.name}?`
+            : "Delete resume?"
+        }
+        description="The file is removed from storage too. Applications that already used this version keep the name."
+        busy={busyId === pendingDelete?.id}
+        onCancel={() => {
+          if (!busyId) setPendingDelete(null);
+        }}
+        onConfirm={() => {
+          if (pendingDelete) remove(pendingDelete.id);
+        }}
+      />
     </div>
   );
 }

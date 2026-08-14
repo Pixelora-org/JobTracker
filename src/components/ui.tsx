@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 export function MicroLabel({
@@ -19,18 +20,19 @@ export function MicroLabel({
   );
 }
 
-export function Button({
-  children,
-  className,
-  variant = "primary",
-  size = "md",
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  size?: "sm" | "md";
-}) {
+export const Button = forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: "primary" | "secondary" | "ghost" | "danger";
+    size?: "sm" | "md";
+  }
+>(function Button(
+  { children, className, variant = "primary", size = "md", ...props },
+  ref
+) {
   return (
     <button
+      ref={ref}
       className={cn(
         "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50",
         size === "sm" && "h-9 px-3 text-sm sm:h-8",
@@ -49,7 +51,7 @@ export function Button({
       {children}
     </button>
   );
-}
+});
 
 export function Input({
   className,

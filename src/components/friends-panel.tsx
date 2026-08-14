@@ -10,6 +10,7 @@ import {
 } from "@/lib/actions/friends";
 import { otherPartyHandle, threadPeerHandle } from "@/lib/friends";
 import type { Friendship, JobThread } from "@/lib/types";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Button,
   ErrorBanner,
@@ -32,6 +33,10 @@ export function FriendsPanel({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<{
+    id: string;
+    who: string;
+  } | null>(null);
 
   const incoming = friendships.filter(
     (f) => f.status === "pending" && f.addresseeId === userId
@@ -64,6 +69,7 @@ export function FriendsPanel({
     startTransition(async () => {
       const result = await action(id);
       setBusyId(null);
+      setPendingRemove(null);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -190,12 +196,7 @@ export function FriendsPanel({
                     variant="ghost"
                     size="sm"
                     disabled={busyId === f.id}
-                    onClick={() => {
-                      const ok = confirm(
-                        `Remove ${who}? Threads you already share stay put, but neither of you can share new jobs.`
-                      );
-                      if (ok) run(f.id, ignoreFriendAction);
-                    }}
+                    onClick={() => setPendingRemove({ id: f.id, who })}
                   >
                     {busyId === f.id ? "Removing…" : "Remove"}
                   </Button>
@@ -236,6 +237,23 @@ export function FriendsPanel({
           </ul>
         )}
       </section>
+
+      <ConfirmDialog
+        open={pendingRemove !== null}
+        title={
+          pendingRemove ? `Remove ${pendingRemove.who}?` : "Remove friend?"
+        }
+        description="Threads you already share stay put, but neither of you can share new jobs."
+        confirmLabel="Remove"
+        busyLabel="Removing…"
+        busy={busyId === pendingRemove?.id}
+        onCancel={() => {
+          if (!busyId) setPendingRemove(null);
+        }}
+        onConfirm={() => {
+          if (pendingRemove) run(pendingRemove.id, ignoreFriendAction);
+        }}
+      />
     </div>
   );
 }

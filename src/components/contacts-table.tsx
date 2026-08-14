@@ -10,6 +10,7 @@ import {
   type Touchpoint,
 } from "@/lib/types";
 import { Button, ErrorBanner, MicroLabel, Select } from "@/components/ui";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export function ContactsTable({
   touchpoints,
@@ -22,12 +23,9 @@ export function ContactsTable({
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const [pendingDelete, setPendingDelete] = useState<Touchpoint | null>(null);
 
   function remove(touchpoint: Touchpoint) {
-    const ok = confirm(
-      `Delete the ${touchpoint.channel.toLowerCase()} to ${touchpoint.contactName}? Any follow-up reminder on it goes too.`
-    );
-    if (!ok) return;
     setError(null);
     setBusyId(touchpoint.id);
     startTransition(async () => {
@@ -36,6 +34,7 @@ export function ContactsTable({
         touchpoint.applicationId
       );
       setBusyId(null);
+      setPendingDelete(null);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -135,7 +134,7 @@ export function ContactsTable({
                         variant="ghost"
                         size="sm"
                         disabled={busyId === t.id}
-                        onClick={() => remove(t)}
+                        onClick={() => setPendingDelete(t)}
                       >
                         {busyId === t.id ? "Deleting…" : "Delete"}
                       </Button>
@@ -147,6 +146,27 @@ export function ContactsTable({
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={
+          pendingDelete
+            ? `Delete ${pendingDelete.contactName}?`
+            : "Delete outreach?"
+        }
+        description={
+          pendingDelete
+            ? `The ${pendingDelete.channel.toLowerCase()} to ${pendingDelete.company} and any follow-up reminder on it are removed.`
+            : ""
+        }
+        busy={busyId === pendingDelete?.id}
+        onCancel={() => {
+          if (!busyId) setPendingDelete(null);
+        }}
+        onConfirm={() => {
+          if (pendingDelete) remove(pendingDelete);
+        }}
+      />
     </div>
   );
 }

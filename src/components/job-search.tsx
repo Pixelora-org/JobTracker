@@ -22,6 +22,7 @@ import {
 } from "@/lib/jobs/filters";
 import { sponsorshipLabel, type SponsorshipSignal } from "@/lib/jobs/sponsorship";
 import type { Resume } from "@/lib/types";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Button,
   ErrorBanner,
@@ -67,6 +68,12 @@ export function JobSearch({
   const [searching, startSearch] = useTransition();
   const [saving, startSave] = useTransition();
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<{
+    listingId: string;
+    applicationId: string;
+    title: string;
+    company: string;
+  } | null>(null);
 
   const filtersChanged =
     JSON.stringify(filters) !== JSON.stringify(DEFAULT_JOB_FILTERS);
@@ -123,6 +130,7 @@ export function JobSearch({
       const result = await deleteApplicationAction(applicationId);
       setSavingId(null);
       if (!result.ok) {
+        setPendingRemove(null);
         setError(result.error);
         return;
       }
@@ -131,6 +139,7 @@ export function JobSearch({
         delete next[listingId];
         return next;
       });
+      setPendingRemove(null);
       router.refresh();
     });
   }
@@ -397,7 +406,14 @@ export function JobSearch({
                         variant="ghost"
                         size="sm"
                         disabled={saving && savingId === listing.id}
-                        onClick={() => unsave(listing.id, savedId)}
+                        onClick={() =>
+                          setPendingRemove({
+                            listingId: listing.id,
+                            applicationId: savedId,
+                            title: listing.title,
+                            company: listing.company,
+                          })
+                        }
                       >
                         {savingId === listing.id ? "Removing…" : "Remove"}
                       </Button>
@@ -418,6 +434,33 @@ export function JobSearch({
           );
         })}
       </ul>
+
+      <ConfirmDialog
+        open={pendingRemove !== null}
+        title={
+          pendingRemove
+            ? `Remove ${pendingRemove.company}?`
+            : "Remove from board?"
+        }
+        description={
+          pendingRemove
+            ? `${pendingRemove.title} comes off the board. You can save it again from this list.`
+            : ""
+        }
+        confirmLabel="Remove"
+        busyLabel="Removing…"
+        busy={saving && savingId === pendingRemove?.listingId}
+        onCancel={() => {
+          if (!(saving && savingId === pendingRemove?.listingId)) {
+            setPendingRemove(null);
+          }
+        }}
+        onConfirm={() => {
+          if (pendingRemove) {
+            unsave(pendingRemove.listingId, pendingRemove.applicationId);
+          }
+        }}
+      />
     </div>
   );
 }

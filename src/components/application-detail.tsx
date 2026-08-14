@@ -12,6 +12,7 @@ import { useAppShell } from "@/components/app-shell-provider";
 import { OutreachPanel } from "@/components/outreach-panel";
 import { ShareJob } from "@/components/share-job";
 import { TouchpointForm } from "@/components/touchpoint-form";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Button,
   ErrorBanner,
@@ -80,6 +81,11 @@ export function ApplicationDetail({
   const [showFullNotes, setShowFullNotes] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [confirm, setConfirm] = useState<
+    | { kind: "application" }
+    | { kind: "touchpoint"; id: string; name: string }
+    | null
+  >(null);
   const stale = isStale(application);
   const days = daysSince(application.updatedAt);
   const action = nextAction(application, touchpoints);
@@ -101,11 +107,11 @@ export function ApplicationDetail({
   }
 
   function onDelete() {
-    if (!confirm("Delete this application? This cannot be undone.")) return;
     setError(null);
     startTransition(async () => {
       const result = await deleteApplicationAction(application.id);
       if (!result.ok) {
+        setConfirm(null);
         setError(result.error);
         return;
       }
@@ -115,9 +121,9 @@ export function ApplicationDetail({
   }
 
   function onDeleteTouchpoint(id: string) {
-    if (!confirm("Delete this touchpoint?")) return;
     startTransition(async () => {
       const result = await deleteTouchpointAction(id, application.id);
+      setConfirm(null);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -172,7 +178,7 @@ export function ApplicationDetail({
             type="button"
             variant="danger"
             disabled={pending}
-            onClick={onDelete}
+            onClick={() => setConfirm({ kind: "application" })}
           >
             Delete
           </Button>
@@ -333,7 +339,13 @@ export function ApplicationDetail({
                     variant="ghost"
                     size="sm"
                     disabled={pending}
-                    onClick={() => onDeleteTouchpoint(t.id)}
+                    onClick={() =>
+                      setConfirm({
+                        kind: "touchpoint",
+                        id: t.id,
+                        name: t.contactName,
+                      })
+                    }
                   >
                     Delete
                   </Button>
@@ -349,6 +361,28 @@ export function ApplicationDetail({
           </ul>
         </section>
       ) : null}
+
+      <ConfirmDialog
+        open={confirm !== null}
+        title={
+          confirm?.kind === "touchpoint"
+            ? `Delete ${confirm.name}?`
+            : `Delete ${application.company}?`
+        }
+        description={
+          confirm?.kind === "touchpoint"
+            ? "This outreach and any follow-up reminder on it are removed."
+            : `${application.role}. Logged outreach stays under Outreach, but is no longer tied to this role.`
+        }
+        busy={pending}
+        onCancel={() => {
+          if (!pending) setConfirm(null);
+        }}
+        onConfirm={() => {
+          if (confirm?.kind === "touchpoint") onDeleteTouchpoint(confirm.id);
+          else onDelete();
+        }}
+      />
     </div>
   );
 }
