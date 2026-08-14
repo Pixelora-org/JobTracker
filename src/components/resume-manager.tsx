@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { format, isValid, parseISO } from "date-fns";
 import {
   createResumeAction,
   deleteResumeAction,
@@ -11,6 +12,7 @@ import { useSession } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import { RESUME_BUCKET, type Resume } from "@/lib/types";
 import type { ResumeInsight, ResumeVersionStats } from "@/lib/resume-stats";
+import { cn } from "@/lib/utils";
 import { Button, ErrorBanner, Field, Input, MicroLabel, Textarea } from "@/components/ui";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -23,6 +25,60 @@ function formatBytes(bytes: number) {
 
 function safeName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+}
+
+function addedOn(iso: string) {
+  const date = parseISO(iso);
+  return isValid(date) ? format(date, "d MMM yyyy") : iso.slice(0, 10);
+}
+
+function fileKind(name: string) {
+  const ext = name.split(".").pop();
+  return ext ? ext.toUpperCase() : "FILE";
+}
+
+function Stat({
+  value,
+  label,
+  accent,
+}: {
+  value: number | string;
+  label: string;
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <p
+        className={cn(
+          "text-lg font-medium tabular-nums",
+          accent ? "text-accent" : "text-text"
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden="true"
+    >
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 3v5h5" />
+    </svg>
+  );
 }
 
 export function ResumeManager({
@@ -203,26 +259,50 @@ export function ResumeManager({
             return (
               <li
                 key={resume.id}
-                className="rounded-lg border border-border bg-surface px-4 py-3"
+                className="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-border/80"
               >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium">{resume.label}</p>
-                      <span className="font-mono text-[11px] text-muted">
-                        {formatBytes(resume.sizeBytes)}
+                      <p className="text-sm font-medium text-text">
+                        {resume.label}
+                      </p>
+                      <span className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.04em] text-muted">
+                        {fileKind(resume.fileName)} · {formatBytes(resume.sizeBytes)}
                       </span>
                     </div>
-                    <p className="mt-1 font-mono text-[11px] text-muted">
-                      {sent} sent · {screens} screen{screens === 1 ? "" : "s"} ·{" "}
-                      {interviews} interview{interviews === 1 ? "" : "s"}
-                    </p>
-                    <p className="mt-1 truncate font-mono text-[11px] text-muted">
-                      {resume.fileName} · added {resume.createdAt.slice(0, 10)}
-                    </p>
+
+                    {sent > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-x-8 gap-y-3">
+                        <Stat value={sent} label="Sent" />
+                        <Stat value={screens} label="Screens" />
+                        <Stat value={interviews} label="Interviews" />
+                        <Stat
+                          accent
+                          value={`${Math.round((screens / sent) * 100)}%`}
+                          label="Screen rate"
+                        />
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted">
+                        Not sent yet. Pick{" "}
+                        <span className="text-text">{resume.label}</span> in the
+                        resume field when you log an application and the numbers
+                        show up here.
+                      </p>
+                    )}
+
                     {resume.notes ? (
-                      <p className="mt-2 text-sm text-muted">{resume.notes}</p>
+                      <p className="mt-3 text-sm text-muted">{resume.notes}</p>
                     ) : null}
+
+                    <p className="mt-3 flex items-center gap-1.5 border-t border-border pt-3 font-mono text-[11px] text-muted">
+                      <FileIcon />
+                      <span className="truncate">{resume.fileName}</span>
+                      <span className="shrink-0">
+                        · {addedOn(resume.createdAt)}
+                      </span>
+                    </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <Button

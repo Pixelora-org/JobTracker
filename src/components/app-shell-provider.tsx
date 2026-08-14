@@ -8,8 +8,10 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import type { Application, ApplicationInput } from "@/lib/types";
 import { ApplicationSlideOver } from "@/components/application-form";
+import { CommandPalette, type Command } from "@/components/command-palette";
 import { QuickCapture } from "@/components/quick-capture";
 
 type ShellContextValue = {
@@ -35,8 +37,10 @@ export function AppShellProvider({
   children: React.ReactNode;
   resumeOptions?: string[];
 }) {
+  const router = useRouter();
   const [formOpen, setFormOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [editing, setEditing] = useState<Application | null>(null);
   const [prefill, setPrefill] = useState<Partial<ApplicationInput> | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,12 +66,58 @@ export function AppShellProvider({
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setCaptureOpen(true);
+        setPaletteOpen((v) => !v);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const commands = useMemo<Command[]>(
+    () => [
+      { id: "quick-add", group: "Actions", label: "Quick add", run: openCapture },
+      {
+        id: "manual-add",
+        group: "Actions",
+        label: "Add application manually",
+        run: () => openCreateApplication(),
+      },
+      { id: "board", group: "Go to", label: "Board", run: () => router.push("/board") },
+      {
+        id: "table",
+        group: "Go to",
+        label: "Table view",
+        run: () => router.push("/board?view=table"),
+      },
+      { id: "jobs", group: "Go to", label: "Find jobs", run: () => router.push("/jobs") },
+      {
+        id: "outreach",
+        group: "Go to",
+        label: "Outreach",
+        run: () => router.push("/contacts"),
+      },
+      {
+        id: "due",
+        group: "Go to",
+        label: "Due follow-ups",
+        run: () => router.push("/contacts?tab=due"),
+      },
+      { id: "plan", group: "Go to", label: "Plan", run: () => router.push("/strategy") },
+      {
+        id: "resumes",
+        group: "Go to",
+        label: "Resumes",
+        run: () => router.push("/resumes"),
+      },
+      {
+        id: "friends",
+        group: "Go to",
+        label: "Friends",
+        run: () => router.push("/friends"),
+      },
+    ],
+    [openCapture, openCreateApplication, router]
+  );
 
   const value = useMemo(
     () => ({
@@ -83,6 +133,12 @@ export function AppShellProvider({
   return (
     <ShellContext.Provider value={value}>
       {children}
+      {paletteOpen ? (
+        <CommandPalette
+          onClose={() => setPaletteOpen(false)}
+          commands={commands}
+        />
+      ) : null}
       <QuickCapture
         open={captureOpen}
         onClose={() => setCaptureOpen(false)}

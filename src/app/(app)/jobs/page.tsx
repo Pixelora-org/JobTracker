@@ -14,8 +14,8 @@ export default async function JobsPage() {
         </p>
         <h1 className="text-xl font-medium tracking-tight">Jobs</h1>
         <p className="mt-1 text-sm text-muted">
-          Pick a job type and a city, then save a listing onto the board as
-          Wishlist.
+          Pick a type and a city, narrow by experience, pay, or visa
+          sponsorship, then save a listing onto the board as Wishlist.
         </p>
       </div>
       <JobSearch

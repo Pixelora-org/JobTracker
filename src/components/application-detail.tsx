@@ -12,7 +12,51 @@ import { useAppShell } from "@/components/app-shell-provider";
 import { OutreachPanel } from "@/components/outreach-panel";
 import { ShareJob } from "@/components/share-job";
 import { TouchpointForm } from "@/components/touchpoint-form";
-import { Button, ErrorBanner, MicroLabel, StatusPill } from "@/components/ui";
+import {
+  Button,
+  ErrorBanner,
+  MicroLabel,
+  StatusPill,
+  TabBar,
+} from "@/components/ui";
+
+type Tab = "overview" | "outreach" | "activity";
+
+/**
+ * The one line that says what to do next. Derived from fields we already store,
+ * in order of urgency, so the page opens with an instruction rather than a wall.
+ */
+function nextAction(app: Application, touchpoints: Touchpoint[]) {
+  const overdue = daysSince(app.nextActionDate);
+  if (overdue !== null && overdue >= 0) {
+    return {
+      text:
+        overdue === 0
+          ? "Next action is due today."
+          : `Next action is ${overdue}d overdue.`,
+      urgent: true,
+    };
+  }
+  if (app.nextActionDate) {
+    return {
+      text: `Next action on ${app.nextActionDate.slice(0, 10)}.`,
+      urgent: false,
+    };
+  }
+  if (touchpoints.length === 0) {
+    return {
+      text: "No outreach logged yet. Find someone worth emailing.",
+      urgent: false,
+    };
+  }
+  if (isStale(app)) {
+    return {
+      text: `No movement in ${daysSince(app.updatedAt)}d. Nudge it, or write it off.`,
+      urgent: true,
+    };
+  }
+  return { text: "Up to date. Nothing is waiting on you.", urgent: false };
+}
 
 export function ApplicationDetail({
   application,
@@ -20,21 +64,41 @@ export function ApplicationDetail({
   apolloEnabled,
   aiEnabled,
   friends,
+  initialTab = "overview",
 }: {
   application: Application;
   touchpoints: Touchpoint[];
   apolloEnabled: boolean;
   aiEnabled: boolean;
   friends: { userId: string; handle: string }[];
+  initialTab?: Tab;
 }) {
   const router = useRouter();
   const { openEditApplication } = useAppShell();
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [error, setError] = useState<string | null>(null);
   const [showFullNotes, setShowFullNotes] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [pending, startTransition] = useTransition();
   const stale = isStale(application);
   const days = daysSince(application.updatedAt);
+  const action = nextAction(application, touchpoints);
+
+  function pickTab(next: string) {
+    const value = (["overview", "outreach", "activity"] as const).includes(
+      next as Tab
+    )
+      ? (next as Tab)
+      : "overview";
+    setTab(value);
+    window.history.replaceState(
+      null,
+      "",
+      value === "overview"
+        ? `/applications/${application.id}`
+        : `/applications/${application.id}?tab=${value}`
+    );
+  }
 
   function onDelete() {
     if (!confirm("Delete this application? This cannot be undone.")) return;
@@ -45,7 +109,7 @@ export function ApplicationDetail({
         setError(result.error);
         return;
       }
-      router.push("/applications");
+      router.push("/board?view=table");
       router.refresh();
     });
   }
@@ -63,14 +127,14 @@ export function ApplicationDetail({
   }
 
   return (
-    <div className="mx-auto max-w-[1240px] space-y-5">
+    <div className="mx-auto max-w-[1000px] space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <Link
-            href="/applications"
+            href="/board"
             className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted hover:text-text"
           >
-            ← Applications
+            ← Board
           </Link>
           <h1 className="mt-2 text-2xl font-medium tracking-tight text-text">
             {application.company}
@@ -115,160 +179,176 @@ export function ApplicationDetail({
         </div>
       </div>
 
+      <p
+        className={cn(
+          "rounded-lg border px-4 py-3 text-sm",
+          action.urgent
+            ? "border-stale/40 bg-stale-bg text-text"
+            : "border-border bg-surface text-muted"
+        )}
+      >
+        {action.text}
+      </p>
+
       {error ? <ErrorBanner message={error} /> : null}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
-        <aside className="space-y-4 lg:order-2 lg:sticky lg:top-[84px] lg:self-start">
-          <section className="rounded-lg border border-border bg-surface p-4">
-            <MicroLabel>Details</MicroLabel>
-            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2">
-              {(
+      <TabBar
+        ariaLabel="Application sections"
+        active={tab}
+        onSelect={pickTab}
+        items={[
+          { id: "overview", label: "Overview" },
+          { id: "outreach", label: "Outreach" },
+          { id: "activity", label: `Activity (${touchpoints.length})` },
+        ]}
+      />
+
+      {tab === "overview" ? (
+        <section className="rounded-lg border border-border bg-surface p-4">
+          <MicroLabel>Details</MicroLabel>
+          <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {(
+              [
+                ["Source", application.source],
+                ["Resume", application.resumeVersion || "-"],
+                ["Location", application.location || "-"],
+                ["Work mode", application.workMode || "-"],
                 [
-                  ["Source", application.source],
-                  ["Resume", application.resumeVersion || "-"],
-                  ["Location", application.location || "-"],
-                  ["Work mode", application.workMode || "-"],
-                  [
-                    "Applied",
-                    application.dateApplied
-                      ? application.dateApplied.slice(0, 10)
-                      : "-",
-                  ],
-                  [
-                    "Next action",
-                    application.nextActionDate
-                      ? application.nextActionDate.slice(0, 10)
-                      : "-",
-                  ],
-                ] as const
-              ).map(([label, value]) => (
-                <div key={label}>
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
-                    {label}
-                  </dt>
-                  <dd className="mt-1 text-sm text-text">{value}</dd>
-                </div>
-              ))}
-            </dl>
-            {application.jobUrl ? (
-              <p className="mt-4 text-sm">
-                <a
-                  href={application.jobUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-accent hover:underline"
-                >
-                  Open job posting ↗
-                </a>
-              </p>
-            ) : null}
-            {application.notes ? (
-              <div className="mt-4 border-t border-border pt-4">
-                <MicroLabel>Notes</MicroLabel>
-                <p
-                  className={cn(
-                    "mt-2 whitespace-pre-wrap text-sm text-text",
-                    !showFullNotes && "line-clamp-6",
-                  )}
-                >
-                  {application.notes}
-                </p>
-                {application.notes.length > 320 ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowFullNotes((v) => !v)}
-                    className="mt-2 font-mono text-[11px] text-accent hover:underline"
-                  >
-                    {showFullNotes ? "Show less" : "Show full posting"}
-                  </button>
-                ) : null}
+                  "Applied",
+                  application.dateApplied
+                    ? application.dateApplied.slice(0, 10)
+                    : "-",
+                ],
+                [
+                  "Next action",
+                  application.nextActionDate
+                    ? application.nextActionDate.slice(0, 10)
+                    : "-",
+                ],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label}>
+                <dt className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                  {label}
+                </dt>
+                <dd className="mt-1 text-sm text-text">{value}</dd>
               </div>
-            ) : null}
-          </section>
-        </aside>
-
-        <div className="space-y-5 lg:order-1">
-          <OutreachPanel
-            application={application}
-            apolloEnabled={apolloEnabled}
-            aiEnabled={aiEnabled}
-          />
-
-          <section className="space-y-3">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-base font-medium">
-                Touchpoints
-                <span className="ml-2 font-mono text-[11px] text-muted">
-                  {touchpoints.length}
-                </span>
-              </h2>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowManualForm((v) => !v)}
+            ))}
+          </dl>
+          {application.jobUrl ? (
+            <p className="mt-4 text-sm">
+              <a
+                href={application.jobUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent hover:underline"
               >
-                {showManualForm ? "Close" : "Log manually"}
-              </Button>
-            </div>
-            {showManualForm ? (
-              <TouchpointForm
-                applicationId={application.id}
-                defaultCompany={application.company}
-                onDone={() => setShowManualForm(false)}
-              />
-            ) : null}
-            <ul className="space-y-2">
-              {touchpoints.map((t) => (
-                <li
-                  key={t.id}
-                  className="rounded-lg border border-border bg-surface px-4 py-3"
+                Open job posting ↗
+              </a>
+            </p>
+          ) : null}
+          {application.notes ? (
+            <div className="mt-4 border-t border-border pt-4">
+              <MicroLabel>Notes</MicroLabel>
+              <p
+                className={cn(
+                  "mt-2 whitespace-pre-wrap text-sm text-text",
+                  !showFullNotes && "line-clamp-6"
+                )}
+              >
+                {application.notes}
+              </p>
+              {application.notes.length > 320 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowFullNotes((v) => !v)}
+                  className="mt-2 font-mono text-[11px] text-accent hover:underline"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium">
-                        {t.contactName}
-                        {t.contactTitle ? (
-                          <span className="ml-2 text-xs font-normal text-muted">
-                            {t.contactTitle}
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 font-mono text-[11px] text-muted">
-                        {t.channel} · {t.type} · {t.status} ·{" "}
-                        {t.date.slice(0, 10)}
-                      </p>
-                      {t.contactEmail ? (
-                        <p className="mt-0.5 font-mono text-[11px] text-accent">
-                          {t.contactEmail}
-                        </p>
-                      ) : null}
-                      {t.notes ? (
-                        <p className="mt-2 text-sm text-muted">{t.notes}</p>
-                      ) : null}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={pending}
-                      onClick={() => onDeleteTouchpoint(t.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </li>
-              ))}
-              {touchpoints.length === 0 ? (
-                <li className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted">
-                  No outreach logged yet. Draft a message above, then log it as
-                  sent.
-                </li>
+                  {showFullNotes ? "Show less" : "Show full posting"}
+                </button>
               ) : null}
-            </ul>
-          </section>
-        </div>
-      </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {tab === "outreach" ? (
+        <OutreachPanel
+          application={application}
+          apolloEnabled={apolloEnabled}
+          aiEnabled={aiEnabled}
+        />
+      ) : null}
+
+      {tab === "activity" ? (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-base font-medium">Touchpoints</h2>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowManualForm((v) => !v)}
+            >
+              {showManualForm ? "Close" : "Log manually"}
+            </Button>
+          </div>
+          {showManualForm ? (
+            <TouchpointForm
+              applicationId={application.id}
+              defaultCompany={application.company}
+              onDone={() => setShowManualForm(false)}
+            />
+          ) : null}
+          <ul className="space-y-2">
+            {touchpoints.map((t) => (
+              <li
+                key={t.id}
+                className="rounded-lg border border-border bg-surface px-4 py-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {t.contactName}
+                      {t.contactTitle ? (
+                        <span className="ml-2 text-xs font-normal text-muted">
+                          {t.contactTitle}
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[11px] text-muted">
+                      {t.channel} · {t.type} · {t.status} · {t.date.slice(0, 10)}
+                    </p>
+                    {t.contactEmail ? (
+                      <p className="mt-0.5 font-mono text-[11px] text-accent">
+                        {t.contactEmail}
+                      </p>
+                    ) : null}
+                    {t.notes ? (
+                      <p className="mt-2 text-sm text-muted">{t.notes}</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() => onDeleteTouchpoint(t.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </li>
+            ))}
+            {touchpoints.length === 0 ? (
+              <li className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted">
+                No outreach logged yet. Draft a message in the Outreach tab, then
+                log it as sent.
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

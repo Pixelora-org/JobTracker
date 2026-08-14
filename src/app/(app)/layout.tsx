@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { countDueFollowUps } from "@/lib/data/touchpoints";
 import { listResumes } from "@/lib/data/resumes";
 import { AppShellProvider } from "@/components/app-shell-provider";
+import { MobileNav } from "@/components/mobile-nav";
 import { TopBar } from "@/components/top-bar";
 import { SetupNotice } from "@/components/setup-notice";
 import { UsernameSetup } from "@/components/username-setup";
@@ -49,9 +50,10 @@ export default async function AppLayout({
         username={user.username}
         followUpCount={followUpCount}
       />
-      <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 sm:px-6">
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 pb-24 sm:px-6 lg:pb-5">
         {children}
       </main>
+      <MobileNav followUpCount={followUpCount} />
     </AppShellProvider>
   );
 }

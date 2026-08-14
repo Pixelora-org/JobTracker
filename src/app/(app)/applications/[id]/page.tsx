@@ -10,10 +10,13 @@ import { getUser } from "@/lib/supabase/server";
 
 export default async function ApplicationDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { id } = await params;
+  const { tab } = await searchParams;
   const user = await getUser();
 
   const application = await getApplication(id);
@@ -40,6 +43,7 @@ export default async function ApplicationDetailPage({
       apolloEnabled={isApolloConfigured}
       aiEnabled={isAiConfigured}
       friends={friends}
+      initialTab={tab === "outreach" || tab === "activity" ? tab : "overview"}
     />
   );
 }

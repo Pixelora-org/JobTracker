@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { BoardViews, type BoardView } from "@/components/board-views";
 import { FunnelStrip } from "@/components/funnel-strip";
-import { KanbanBoard } from "@/components/kanban-board";
 import { TodayStrip } from "@/components/today-strip";
 import { EmptyState } from "@/components/ui";
 import { listActivitySince } from "@/lib/data/activity";
@@ -11,7 +11,13 @@ import { friendlyDataError } from "@/lib/supabase/errors";
 import { AddApplicationButton } from "@/components/add-application-button";
 import type { Application, Strategy } from "@/lib/types";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const view: BoardView =
+    (await searchParams).view === "table" ? "table" : "kanban";
   let applications: Application[] = [];
   let loadError: string | null = null;
   let progress: StrategyProgress | null = null;
@@ -48,7 +54,8 @@ export default async function DashboardPage() {
           <h1 className="text-xl font-medium tracking-tight">Board</h1>
         </div>
         <p className="text-sm text-muted">
-          Pick a stage. Drag a card onto another stage to move it.
+          Drag a card onto another stage to move it, or switch to the table to
+          sort and filter.
         </p>
       </div>
 
@@ -85,7 +92,7 @@ export default async function DashboardPage() {
           ) : (
             <>
               <FunnelStrip applications={applications} />
-              <KanbanBoard initialApplications={applications} />
+              <BoardViews applications={applications} initialView={view} />
             </>
           )}
         </>

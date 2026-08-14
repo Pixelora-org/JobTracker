@@ -32,9 +32,9 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-md font-medium transition-colors disabled:opacity-50",
-        size === "sm" && "h-8 px-3 text-sm",
-        size === "md" && "h-9 px-3.5 text-sm",
+        "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50",
+        size === "sm" && "h-9 px-3 text-sm sm:h-8",
+        size === "md" && "h-10 px-3.5 text-sm sm:h-9",
         variant === "primary" &&
           "bg-accent text-white hover:bg-[#2945c9] focus-visible:outline-accent",
         variant === "secondary" &&
@@ -58,7 +58,7 @@ export function Input({
   return (
     <input
       className={cn(
-        "h-9 w-full rounded-md border border-border bg-surface px-3 text-sm text-text placeholder:text-muted/80",
+        "h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text placeholder:text-muted/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-1px] focus-visible:outline-accent sm:h-9",
         className
       )}
       {...props}
@@ -74,7 +74,7 @@ export function Select({
   return (
     <select
       className={cn(
-        "h-9 w-full rounded-md border border-border bg-surface px-3 text-sm text-text",
+        "h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-1px] focus-visible:outline-accent sm:h-9",
         className
       )}
       {...props}
@@ -91,7 +91,7 @@ export function Textarea({
   return (
     <textarea
       className={cn(
-        "min-h-[88px] w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-muted/80",
+        "min-h-[88px] w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-muted/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-1px] focus-visible:outline-accent",
         className
       )}
       {...props}
@@ -114,6 +114,56 @@ export function Field({
       {children}
       {hint ? <span className="text-xs text-muted">{hint}</span> : null}
     </label>
+  );
+}
+
+/**
+ * Underline tabs for switching between different content within a page. For
+ * switching how the *same* data is drawn, use a segmented control instead.
+ */
+export function TabBar({
+  items,
+  active,
+  onSelect,
+  ariaLabel,
+}: {
+  items: { id: string; label: string; badge?: number }[];
+  active: string;
+  onSelect: (id: string) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="flex items-center gap-1 border-b border-border"
+    >
+      {items.map((item) => {
+        const selected = item.id === active;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() => onSelect(item.id)}
+            className={cn(
+              "-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition-colors",
+              selected
+                ? "border-accent font-medium text-text"
+                : "border-transparent text-muted hover:text-text"
+            )}
+          >
+            {item.label}
+            {item.badge ? (
+              <span className="rounded-full bg-stale px-1.5 font-mono text-[10px] tabular-nums text-white">
+                {item.badge}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

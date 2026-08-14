@@ -7,7 +7,12 @@ import { createApplication } from "@/lib/data/applications";
 import { getActiveStrategy } from "@/lib/data/strategies";
 import { listResumes } from "@/lib/data/resumes";
 import { isJobsApiConfigured, searchJobListings, type JobListing } from "@/lib/jobs/search";
-import { resolveJobLocation } from "@/lib/jobs/filters";
+import {
+  DEFAULT_JOB_FILTERS,
+  resolveJobLocation,
+  type JobFilters,
+} from "@/lib/jobs/filters";
+import { passesSponsorshipFilter } from "@/lib/jobs/sponsorship";
 import { consumeQuota } from "@/lib/quota";
 import { getUser } from "@/lib/supabase/server";
 import type { Track } from "@/lib/types";
@@ -31,7 +36,10 @@ export async function searchJobsAction(input: {
   resumeLabel?: string;
   titles?: string;
   location?: string;
-}): Promise<ActionResult<{ listings: JobListing[]; query: string }>> {
+  filters?: Partial<JobFilters>;
+}): Promise<
+  ActionResult<{ listings: JobListing[]; query: string; hidden: number }>
+> {
   try {
     const user = await getUser();
     if (!user) return { ok: false, error: "You are signed out." };
@@ -43,9 +51,11 @@ export async function searchJobsAction(input: {
       };
     }
 
+    const filters: JobFilters = { ...DEFAULT_JOB_FILTERS, ...input.filters };
     const picked = resolveJobLocation(input.location ?? "");
     let query = input.titles?.trim() ?? "";
-    const location = picked.value === "remote" ? "" : picked.value;
+    const remote = picked.value === "remote";
+    const location = remote ? "" : picked.value;
     const country = picked.country;
 
     const needsAi = !query;
@@ -76,8 +86,21 @@ export async function searchJobsAction(input: {
       };
     }
 
-    const listings = await searchJobListings({ query, location, country });
-    return { ok: true, data: { listings, query } };
+    const found = await searchJobListings({
+      query,
+      location,
+      country,
+      remote,
+      filters,
+    });
+    // Sponsorship is judged from the returned text, so it can only be applied here.
+    const listings = found.filter((row) =>
+      passesSponsorshipFilter(row.sponsorship, filters.sponsorship)
+    );
+    return {
+      ok: true,
+      data: { listings, query, hidden: found.length - listings.length },
+    };
   } catch (e) {
     return { ok: false, error: message(e, "Could not search jobs") };
   }

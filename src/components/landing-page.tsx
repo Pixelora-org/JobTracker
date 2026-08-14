@@ -24,7 +24,7 @@ function MockBoard() {
   ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-[0_20px_50px_-24px_rgba(18,21,28,0.35)]">
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_28px_70px_-28px_rgba(18,21,28,0.4)]">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
           Today · 6 left
@@ -98,19 +98,19 @@ export function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto max-w-5xl px-4 pb-16 pt-14 sm:px-6 sm:pt-20">
+        <section className="mx-auto max-w-5xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24">
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
             Plan · Apply · Track
           </p>
-          <h1 className="mt-3 max-w-3xl text-4xl font-medium tracking-tight text-text sm:text-5xl">
+          <h1 className="mt-4 max-w-3xl text-[2.5rem] font-medium leading-[1.05] tracking-tight text-text sm:text-6xl">
             Track the search,
             <span className="text-accent"> not the spreadsheet.</span>
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
             Paste a posting. Log the cold email. Run a daily plan that counts
             itself. Pipeline is the job search tracker you actually keep using.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-9 flex flex-wrap items-center gap-3">
             <Show when="signed-out">
               <Link
                 href="/sign-up"
@@ -132,13 +132,13 @@ export function LandingPage() {
             </span>
           </div>
 
-          <div className="mt-12">
+          <div className="mt-14">
             <MockBoard />
           </div>
         </section>
 
         <section className="border-t border-border bg-surface">
-          <div className="mx-auto grid max-w-5xl gap-10 px-4 py-16 sm:grid-cols-3 sm:px-6">
+          <div className="mx-auto grid max-w-5xl gap-10 px-4 py-20 sm:grid-cols-3 sm:px-6">
             {[
               {
                 step: "01",

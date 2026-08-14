@@ -2,14 +2,24 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { formatDistanceToNowStrict } from "date-fns";
 import { saveListingAction, searchJobsAction } from "@/lib/actions/jobs";
 import type { JobListing } from "@/lib/jobs/search";
 import {
+  DATE_POSTED,
+  DEFAULT_JOB_FILTERS,
+  EMPLOYMENT_TYPES,
+  EXPERIENCE_LEVELS,
   JOB_SEARCH_LOCATIONS,
   JOB_SEARCH_TYPES,
+  SALARY_MINIMUMS,
+  SORT_OPTIONS,
+  SPONSORSHIP_FILTERS,
   jobTypeGroups,
   locationGroups,
+  type JobFilters,
 } from "@/lib/jobs/filters";
+import { sponsorshipLabel, type SponsorshipSignal } from "@/lib/jobs/sponsorship";
 import type { Resume } from "@/lib/types";
 import {
   Button,
@@ -17,7 +27,22 @@ import {
   Field,
   MicroLabel,
   Select,
+  StatusPill,
 } from "@/components/ui";
+
+const SPONSORSHIP_COLOR: Record<SponsorshipSignal, string> = {
+  sponsors: "#1F7A5C",
+  likely: "#2F4FE0",
+  blocked: "#9B2C3D",
+  unknown: "#6B7280",
+};
+
+function postedAgo(iso: string | null) {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${formatDistanceToNowStrict(date)} ago`;
+}
 
 export function JobSearch({
   resumes,
@@ -32,13 +57,22 @@ export function JobSearch({
   const [resumeLabel, setResumeLabel] = useState(resumes[0]?.label ?? "");
   const [titles, setTitles] = useState("");
   const [location, setLocation] = useState("remote");
+  const [filters, setFilters] = useState<JobFilters>(DEFAULT_JOB_FILTERS);
   const [queryUsed, setQueryUsed] = useState("");
+  const [hidden, setHidden] = useState(0);
   const [listings, setListings] = useState<JobListing[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<Record<string, string>>({});
   const [searching, startSearch] = useTransition();
   const [saving, startSave] = useTransition();
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  const filtersChanged =
+    JSON.stringify(filters) !== JSON.stringify(DEFAULT_JOB_FILTERS);
+
+  function set<K extends keyof JobFilters>(key: K, value: JobFilters[K]) {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  }
 
   function search(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +82,7 @@ export function JobSearch({
         resumeLabel: resumeLabel || undefined,
         titles,
         location,
+        filters,
       });
       if (!result.ok) {
         setError(result.error);
@@ -55,6 +90,7 @@ export function JobSearch({
       }
       setListings(result.data.listings);
       setQueryUsed(result.data.query);
+      setHidden(result.data.hidden);
     });
   }
 
@@ -94,7 +130,7 @@ export function JobSearch({
 
       <form
         onSubmit={search}
-        className="space-y-3 rounded-lg border border-border bg-surface p-4"
+        className="space-y-4 rounded-lg border border-border bg-surface p-4"
       >
         <MicroLabel>Search</MicroLabel>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -119,10 +155,7 @@ export function JobSearch({
                 : "Required when AI is off."
             }
           >
-            <Select
-              value={titles}
-              onChange={(e) => setTitles(e.target.value)}
-            >
+            <Select value={titles} onChange={(e) => setTitles(e.target.value)}>
               <option value="">
                 {aiEnabled ? "From resume" : "Select a type"}
               </option>
@@ -158,6 +191,103 @@ export function JobSearch({
             </Select>
           </Field>
         </div>
+
+        <div className="border-t border-border pt-4">
+          <div className="flex items-center justify-between">
+            <MicroLabel>Filters</MicroLabel>
+            {filtersChanged ? (
+              <button
+                type="button"
+                onClick={() => setFilters(DEFAULT_JOB_FILTERS)}
+                className="text-xs text-muted underline-offset-2 hover:text-text hover:underline"
+              >
+                Reset
+              </button>
+            ) : null}
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field label="Experience">
+              <Select
+                value={filters.experience}
+                onChange={(e) => set("experience", e.target.value)}
+              >
+                {EXPERIENCE_LEVELS.map((row) => (
+                  <option key={row.value || "any"} value={row.value}>
+                    {row.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Employment">
+              <Select
+                value={filters.employment}
+                onChange={(e) => set("employment", e.target.value)}
+              >
+                {EMPLOYMENT_TYPES.map((row) => (
+                  <option key={row.value || "any"} value={row.value}>
+                    {row.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Posted">
+              <Select
+                value={filters.datePosted}
+                onChange={(e) => set("datePosted", e.target.value)}
+              >
+                {DATE_POSTED.map((row) => (
+                  <option key={row.value || "any"} value={row.value}>
+                    {row.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field
+              label="Visa sponsorship"
+              hint="A guess from the wording and the employer's H-1B history."
+            >
+              <Select
+                value={filters.sponsorship}
+                onChange={(e) => set("sponsorship", e.target.value)}
+              >
+                {SPONSORSHIP_FILTERS.map((row) => (
+                  <option key={row.value || "any"} value={row.value}>
+                    {row.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field
+              label="Minimum salary"
+              hint="Hides ads that list no salary."
+            >
+              <Select
+                value={filters.salaryMin}
+                onChange={(e) => set("salaryMin", e.target.value)}
+              >
+                {SALARY_MINIMUMS.map((row) => (
+                  <option key={row.value || "any"} value={row.value}>
+                    {row.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Sort by">
+              <Select
+                value={filters.sortBy}
+                onChange={(e) => set("sortBy", e.target.value)}
+              >
+                {SORT_OPTIONS.map((row) => (
+                  <option key={row.value} value={row.value}>
+                    {row.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        </div>
+
         <div className="flex justify-end">
           <Button type="submit" disabled={searching}>
             {searching ? "Searching…" : aiEnabled ? "Find jobs" : "Search titles"}
@@ -166,16 +296,23 @@ export function JobSearch({
       </form>
 
       {queryUsed ? (
-        <p className="font-mono text-[11px] text-muted">Query · {queryUsed}</p>
+        <p className="font-mono text-[11px] text-muted">
+          Query · {queryUsed}
+          {hidden > 0 ? ` · ${hidden} hidden by sponsorship filter` : ""}
+        </p>
       ) : null}
 
       {listings.length === 0 && queryUsed ? (
-        <p className="text-sm text-muted">No listings for that search.</p>
+        <p className="text-sm text-muted">
+          No listings for that search. Try widening the filters.
+        </p>
       ) : null}
 
       <ul className="space-y-2">
         {listings.map((listing) => {
           const savedId = saved[listing.id];
+          const badge = sponsorshipLabel(listing.sponsorship);
+          const posted = postedAgo(listing.postedAt);
           return (
             <li
               key={listing.id}
@@ -189,6 +326,29 @@ export function JobSearch({
                     {listing.location ? ` · ${listing.location}` : ""}
                     {listing.remote ? " · Remote" : ""}
                   </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {badge ? (
+                      <StatusPill
+                        status={badge}
+                        color={SPONSORSHIP_COLOR[listing.sponsorship]}
+                      />
+                    ) : null}
+                    {listing.salary ? (
+                      <span className="font-mono text-[11px] text-muted">
+                        {listing.salary}
+                      </span>
+                    ) : null}
+                    {listing.employment ? (
+                      <span className="font-mono text-[11px] text-muted">
+                        {listing.employment}
+                      </span>
+                    ) : null}
+                    {posted ? (
+                      <span className="font-mono text-[11px] text-muted">
+                        {posted}
+                      </span>
+                    ) : null}
+                  </div>
                   {listing.snippet ? (
                     <p className="mt-2 text-sm text-muted">{listing.snippet}</p>
                   ) : null}

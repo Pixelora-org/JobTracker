@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { ResumeManager } from "@/components/resume-manager";
 import { EmptyState } from "@/components/ui";
 import { listApplications } from "@/lib/data/applications";
@@ -8,6 +9,7 @@ import type { Application, Resume } from "@/lib/types";
 
 export default async function ResumesPage() {
   const user = await getUser();
+  if (!user) redirect("/sign-in");
 
   let resumes: Resume[] = [];
   let applications: Application[] = [];
@@ -47,7 +49,7 @@ export default async function ResumesPage() {
         <EmptyState title="Couldn’t load resumes" description={loadError} />
       ) : (
         <ResumeManager
-          userId={user!.id}
+          userId={user.id}
           resumes={resumes}
           stats={stats}
           insight={insight}
