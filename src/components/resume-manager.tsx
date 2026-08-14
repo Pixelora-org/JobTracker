@@ -10,6 +10,7 @@ import {
 import { useSession } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import { RESUME_BUCKET, type Resume } from "@/lib/types";
+import type { ResumeInsight, ResumeVersionStats } from "@/lib/resume-stats";
 import { Button, ErrorBanner, Field, Input, MicroLabel, Textarea } from "@/components/ui";
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -27,11 +28,13 @@ function safeName(name: string) {
 export function ResumeManager({
   userId,
   resumes,
-  usageByLabel,
+  stats,
+  insight,
 }: {
   userId: string;
   resumes: Resume[];
-  usageByLabel: Record<string, number>;
+  stats: ResumeVersionStats[];
+  insight: ResumeInsight;
 }) {
   const router = useRouter();
   const { session } = useSession();
@@ -170,6 +173,17 @@ export function ResumeManager({
         </div>
       </form>
 
+      {insight ? (
+        <div className="rounded-lg border border-accent/25 bg-accent-soft/40 px-4 py-3 text-sm text-text">
+          <span className="font-medium">{insight.better}</span>
+          {" gets screens at "}
+          <span className="font-medium">{insight.multiple}x</span>
+          {" the rate of "}
+          <span className="font-medium">{insight.worse}</span>
+          {". Based on current stage. Need 5+ sent on each version to compare."}
+        </div>
+      ) : null}
+
       {resumes.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-10">
           <h2 className="text-base font-medium">No resume versions yet</h2>
@@ -181,7 +195,10 @@ export function ResumeManager({
       ) : (
         <ul className="space-y-2">
           {resumes.map((resume) => {
-            const used = usageByLabel[resume.label] ?? 0;
+            const row = stats.find((s) => s.label === resume.label);
+            const sent = row?.sent ?? 0;
+            const screens = row?.screens ?? 0;
+            const interviews = row?.interviews ?? 0;
             const busy = busyId === resume.id;
             return (
               <li
@@ -195,10 +212,11 @@ export function ResumeManager({
                       <span className="font-mono text-[11px] text-muted">
                         {formatBytes(resume.sizeBytes)}
                       </span>
-                      <span className="font-mono text-[11px] text-accent">
-                        {used} application{used === 1 ? "" : "s"}
-                      </span>
                     </div>
+                    <p className="mt-1 font-mono text-[11px] text-muted">
+                      {sent} sent · {screens} screen{screens === 1 ? "" : "s"} ·{" "}
+                      {interviews} interview{interviews === 1 ? "" : "s"}
+                    </p>
                     <p className="mt-1 truncate font-mono text-[11px] text-muted">
                       {resume.fileName} · added {resume.createdAt.slice(0, 10)}
                     </p>

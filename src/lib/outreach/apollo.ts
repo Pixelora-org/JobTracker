@@ -60,7 +60,7 @@ type ApolloPerson = {
   organization?: { name?: string | null } | null;
 };
 
-export function normalizeDomain(domain: string) {
+function normalizeDomain(domain: string) {
   const clean = domain
     .trim()
     .toLowerCase()

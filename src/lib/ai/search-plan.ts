@@ -23,7 +23,7 @@ const personaSchema = z.object({
     ),
 });
 
-export const searchPlanSchema = z.object({
+const searchPlanSchema = z.object({
   brand: z
     .string()
     .describe("The employer name people actually put on their LinkedIn profile."),

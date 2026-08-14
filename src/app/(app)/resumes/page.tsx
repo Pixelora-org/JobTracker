@@ -2,6 +2,7 @@ import { ResumeManager } from "@/components/resume-manager";
 import { EmptyState } from "@/components/ui";
 import { listApplications } from "@/lib/data/applications";
 import { listResumes } from "@/lib/data/resumes";
+import { resumeInsight, resumeStatsFor } from "@/lib/resume-stats";
 import { getUser } from "@/lib/supabase/server";
 import type { Application, Resume } from "@/lib/types";
 
@@ -24,11 +25,11 @@ export default async function ResumesPage() {
         : "Could not load resumes. Check your Supabase setup.";
   }
 
-  const usageByLabel = applications.reduce<Record<string, number>>((acc, app) => {
-    const label = app.resumeVersion?.trim();
-    if (label) acc[label] = (acc[label] ?? 0) + 1;
-    return acc;
-  }, {});
+  const stats = resumeStatsFor(
+    applications,
+    resumes.map((r) => r.label)
+  );
+  const insight = resumeInsight(stats);
 
   return (
     <div className="space-y-5">
@@ -38,7 +39,7 @@ export default async function ResumesPage() {
         </p>
         <h1 className="text-xl font-medium tracking-tight">Resumes</h1>
         <p className="mt-1 text-sm text-muted">
-          Keep every version you send, and see how many applications used each.
+          Keep every version you send, and see which one actually gets screens.
         </p>
       </div>
 
@@ -48,7 +49,8 @@ export default async function ResumesPage() {
         <ResumeManager
           userId={user!.id}
           resumes={resumes}
-          usageByLabel={usageByLabel}
+          stats={stats}
+          insight={insight}
         />
       )}
     </div>

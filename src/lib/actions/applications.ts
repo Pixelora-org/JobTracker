@@ -9,13 +9,12 @@ import {
 import { getUser } from "@/lib/supabase/server";
 import type { ApplicationInput, Status } from "@/lib/types";
 
-export type ActionResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+import type { ActionResult } from "@/lib/actions/result";
 
 function revalidateAppPaths(id?: string) {
   revalidatePath("/board");
   revalidatePath("/applications");
+  revalidatePath("/resumes");
   if (id) revalidatePath(`/applications/${id}`);
 }
 

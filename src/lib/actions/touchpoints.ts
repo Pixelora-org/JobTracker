@@ -10,9 +10,7 @@ import {
 import { getUser } from "@/lib/supabase/server";
 import type { TouchpointInput } from "@/lib/types";
 
-export type ActionResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+import type { ActionResult } from "@/lib/actions/result";
 
 function revalidateTouchPaths(applicationId?: string | null) {
   revalidatePath("/contacts");

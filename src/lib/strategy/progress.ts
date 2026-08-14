@@ -8,9 +8,9 @@ import {
   type TargetPeriod,
 } from "@/lib/types";
 
-export type DayCounts = Record<StrategyMetric, number>;
+type DayCounts = Record<StrategyMetric, number>;
 
-export type MetricProgress = {
+type MetricProgress = {
   metric: StrategyMetric;
   period: TargetPeriod;
   todayActual: number;
@@ -24,7 +24,7 @@ export type MetricProgress = {
   weekTarget: number;
 };
 
-export type DayProgress = {
+type DayProgress = {
   key: string;
   weekday: number;
   active: boolean;
@@ -33,7 +33,7 @@ export type DayProgress = {
   met: boolean;
 };
 
-export type CatchUp = {
+type CatchUp = {
   metric: StrategyMetric;
   perDay: number;
   days: number;
@@ -68,7 +68,7 @@ function emptyCounts(): DayCounts {
 }
 
 /** Calendar date in the user's zone. en-CA formats as YYYY-MM-DD. */
-export function dateKey(iso: string, timeZone: string) {
+function dateKey(iso: string, timeZone: string) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
@@ -77,7 +77,7 @@ export function dateKey(iso: string, timeZone: string) {
   }).format(new Date(iso));
 }
 
-export function todayKey(timeZone: string) {
+function todayKey(timeZone: string) {
   return dateKey(new Date().toISOString(), timeZone);
 }
 
@@ -108,7 +108,7 @@ function weekStartKey(key: string) {
   return shiftKey(key, weekday === 0 ? -6 : 1 - weekday);
 }
 
-export function bucketActivity(activity: ActivityLog, timeZone: string) {
+function bucketActivity(activity: ActivityLog, timeZone: string) {
   const byDay = new Map<string, DayCounts>();
 
   const bump = (iso: string, metric: StrategyMetric) => {
@@ -179,7 +179,7 @@ function periodOf(strategy: Strategy, metric: StrategyMetric): TargetPeriod {
 }
 
 /** Metrics this plan actually tracks, in the order the phases list them. */
-export function trackedMetrics(strategy: Strategy): StrategyMetric[] {
+function trackedMetrics(strategy: Strategy): StrategyMetric[] {
   const seen = new Set<StrategyMetric>();
   for (const phase of strategy.phases) {
     for (const target of phase.targets) {

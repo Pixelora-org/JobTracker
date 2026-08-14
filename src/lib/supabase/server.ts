@@ -34,7 +34,7 @@ export async function getUser() {
     id: userId,
     email,
     name: user?.fullName ?? user?.firstName ?? null,
-    imageUrl: user?.imageUrl ?? null,
+    username: user?.username ?? null,
   };
 }
 

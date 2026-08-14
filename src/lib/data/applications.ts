@@ -10,7 +10,7 @@ import type {
 } from "@/lib/types";
 import { emptyToUndefined } from "@/lib/utils";
 
-export type ApplicationRow = {
+type ApplicationRow = {
   id: string;
   user_id: string;
   company: string;
@@ -30,13 +30,13 @@ export type ApplicationRow = {
   updated_at: string;
 };
 
-export const APPLICATION_COLUMNS =
+const APPLICATION_COLUMNS =
   "id, user_id, company, role, job_url, track, resume_version, status, source, location, work_mode, date_applied, next_action_date, notes, created_at, updated_at";
 
 /** The cached search plan is only useful on the detail page, so lists skip it. */
 const APPLICATION_DETAIL_COLUMNS = `${APPLICATION_COLUMNS}, search_plan`;
 
-export function toApplication(row: ApplicationRow): Application {
+function toApplication(row: ApplicationRow): Application {
   return {
     id: row.id,
     userId: row.user_id,

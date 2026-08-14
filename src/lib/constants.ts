@@ -12,20 +12,32 @@ export const STATUS_COLORS: Record<Status, string> = {
   Ghosted: "#9B2C3D",
 };
 
-/** Kanban column order (excludes terminal-ish columns that still appear) */
-export const KANBAN_COLUMNS: Status[] = [
+/** Visible pipeline. Closed statuses collapse into one rail. */
+export const ACTIVE_KANBAN_COLUMNS: Status[] = [
   "Wishlist",
   "Applied",
   "OA/Assessment",
   "Phone Screen",
   "Interview",
   "Offer",
+];
+
+export const CLOSED_KANBAN_COLUMNS: Status[] = [
   "Rejected",
   "Withdrawn",
   "Ghosted",
 ];
 
+/** Kanban column order (excludes terminal-ish columns that still appear) */
+export const KANBAN_COLUMNS: Status[] = [
+  ...ACTIVE_KANBAN_COLUMNS,
+  ...CLOSED_KANBAN_COLUMNS,
+];
+
 export const STALE_DAYS = 10;
+
+/** Suggest writing off Applied-stage cards with no movement this long. */
+export const WRITE_OFF_DAYS = 21;
 
 /** Days after an outreach touchpoint before a follow-up is due. */
 export const DEFAULT_FOLLOW_UP_DAYS = 3;

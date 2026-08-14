@@ -9,20 +9,24 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/board", label: "Board" },
-  { href: "/strategy", label: "Strategy" },
+  { href: "/jobs", label: "Jobs" },
   { href: "/applications", label: "Table" },
+  { href: "/strategy", label: "Strategy" },
   { href: "/contacts", label: "Contacts" },
   { href: "/follow-ups", label: "Follow-ups" },
   { href: "/resumes", label: "Resumes" },
+  { href: "/friends", label: "Friends" },
 ];
 
 export function TopBar({
   email,
   name,
+  username,
   followUpCount = 0,
 }: {
   email?: string | null;
   name?: string | null;
+  username?: string | null;
   followUpCount?: number;
 }) {
   const pathname = usePathname();
@@ -85,7 +89,7 @@ export function TopBar({
           </Button>
           <div className="flex items-center gap-2">
             <span className="hidden max-w-[140px] truncate font-mono text-[11px] text-muted sm:inline">
-              {name || email}
+              {username ? `@${username}` : name || email}
             </span>
             <UserButton
               appearance={{

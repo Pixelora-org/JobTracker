@@ -26,7 +26,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </h1>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/80">
             Paste a posting. Log the outreach. Run a daily plan that counts
-            itself.
+            itself. Friends find you by username.
           </p>
 
           <div className="mt-10 max-w-sm space-y-2 rounded-xl border border-white/15 bg-white/10 p-3">

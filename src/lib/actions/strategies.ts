@@ -16,9 +16,7 @@ import { friendlyDataError } from "@/lib/supabase/errors";
 import { getUser } from "@/lib/supabase/server";
 import type { StrategyInput } from "@/lib/types";
 
-export type ActionResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+import type { ActionResult } from "@/lib/actions/result";
 
 function message(e: unknown, fallback: string) {
   return friendlyDataError(e instanceof Error ? e.message : fallback);

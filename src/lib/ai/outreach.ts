@@ -3,7 +3,7 @@ import { z } from "zod";
 import { captureModel } from "./model";
 import type { Application } from "@/lib/types";
 
-export const outreachDraftSchema = z.object({
+const outreachDraftSchema = z.object({
   connectionNote: z
     .string()
     .describe("LinkedIn connection note, at most 280 characters."),
@@ -42,7 +42,7 @@ Hard limits:
   (that they applied and are interested), rather than inventing experience.
 - Leave the applicant's name as "[Your name]" in the sign-off.`;
 
-export type DraftContext = {
+type DraftContext = {
   application: Application;
   contactName?: string | null;
   contactTitle?: string | null;

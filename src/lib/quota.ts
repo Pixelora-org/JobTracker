@@ -1,18 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { friendlyDataError } from "@/lib/supabase/errors";
 
-const LIMITS = {
-  ai: 40,
-  apollo: 15,
-} as const;
-
 const MESSAGES = {
   ai: "Daily AI limit reached. It resets at midnight. Try again tomorrow.",
   apollo:
     "Daily email-reveal limit reached. Searching people is still free; reveals reset at midnight.",
 } as const;
 
-export type QuotaKind = keyof typeof LIMITS;
+/** The caps themselves live in the consume_quota SQL function. */
+type QuotaKind = keyof typeof MESSAGES;
 
 /** Spends one unit. Returns an error string when the day's cap is hit. */
 export async function consumeQuota(

@@ -10,6 +10,7 @@ import type { Application, Touchpoint } from "@/lib/types";
 import { cn, daysSince, isStale } from "@/lib/utils";
 import { useAppShell } from "@/components/app-shell-provider";
 import { OutreachPanel } from "@/components/outreach-panel";
+import { ShareJob } from "@/components/share-job";
 import { TouchpointForm } from "@/components/touchpoint-form";
 import { Button, ErrorBanner, MicroLabel, StatusPill } from "@/components/ui";
 
@@ -18,11 +19,13 @@ export function ApplicationDetail({
   touchpoints,
   apolloEnabled,
   aiEnabled,
+  friends,
 }: {
   application: Application;
   touchpoints: Touchpoint[];
   apolloEnabled: boolean;
   aiEnabled: boolean;
+  friends: { userId: string; handle: string }[];
 }) {
   const router = useRouter();
   const { openEditApplication } = useAppShell();
@@ -92,7 +95,8 @@ export function ApplicationDetail({
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-start justify-end gap-2">
+          <ShareJob applicationId={application.id} friends={friends} />
           <Button
             type="button"
             variant="secondary"

@@ -22,7 +22,7 @@ export type CaptureDraft =
       confidence: number;
     };
 
-export type CaptureResult =
+type CaptureResult =
   | { ok: true; draft: CaptureDraft }
   | { ok: false; error: string };
 

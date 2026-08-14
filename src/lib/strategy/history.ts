@@ -3,8 +3,8 @@ import { listApplications } from "@/lib/data/applications";
 import { daysWithActivity, recentAverages } from "./progress";
 import { computeConversionFunnel } from "@/lib/utils";
 
-export const HISTORY_WINDOW_DAYS = 30;
-export const AVERAGE_WINDOW_DAYS = 14;
+const HISTORY_WINDOW_DAYS = 30;
+const AVERAGE_WINDOW_DAYS = 14;
 
 /**
  * Below these, a low average means "just started tracking" rather than "cannot

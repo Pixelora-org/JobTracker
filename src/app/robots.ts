@@ -5,7 +5,16 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/board", "/applications", "/contacts", "/follow-ups", "/resumes", "/strategy"],
+      disallow: [
+        "/board",
+        "/applications",
+        "/contacts",
+        "/follow-ups",
+        "/resumes",
+        "/strategy",
+        "/jobs",
+        "/friends",
+      ],
     },
   };
 }

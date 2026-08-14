@@ -53,7 +53,7 @@ export type TouchpointType = (typeof TOUCHPOINT_TYPES)[number];
 export type TouchpointStatus = (typeof TOUCHPOINT_STATUSES)[number];
 
 /** A person worth contacting, plus the query that finds them. */
-export type SearchPersona = {
+type SearchPersona = {
   label: string;
   why: string;
   /** Exact job titles for the Apollo filter. Absent on plans cached before this shipped. */
@@ -226,4 +226,35 @@ export type TouchpointInput = {
   contactEmail?: string;
   contactTitle?: string;
   contactLinkedinUrl?: string;
+};
+
+export type Friendship = {
+  id: string;
+  requesterId: string;
+  addresseeId: string;
+  requesterEmail: string | null;
+  addresseeEmail: string | null;
+  requesterUsername: string | null;
+  addresseeUsername: string | null;
+  status: "pending" | "accepted";
+  createdAt: string;
+};
+
+export type JobThread = {
+  id: string;
+  applicationId: string | null;
+  ownerId: string;
+  peerId: string;
+  company: string;
+  role: string;
+  jobUrl: string | null;
+  createdAt: string;
+};
+
+export type JobMessage = {
+  id: string;
+  threadId: string;
+  userId: string;
+  body: string;
+  createdAt: string;
 };

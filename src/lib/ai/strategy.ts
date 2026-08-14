@@ -37,7 +37,7 @@ const proposalSchema = z.object({
   risk: z.string().describe("One line on where this plan is likely to break."),
 });
 
-export const strategyProposalsSchema = z.object({
+const strategyProposalsSchema = z.object({
   proposals: z.array(proposalSchema),
 });
 
@@ -105,7 +105,7 @@ This applicant has only just started tracking:
 - "rationale" must justify the numbers from the time budget arithmetic and the
   outcome they want. Never write generic encouragement.`;
 
-export type StrategyContext = {
+type StrategyContext = {
   goalText: string;
   grounded: boolean;
   averages: Record<StrategyMetric, number>;

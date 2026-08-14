@@ -1,5 +1,5 @@
 import { differenceInCalendarDays, parseISO, isValid } from "date-fns";
-import { STALE_DAYS } from "./constants";
+import { STALE_DAYS, WRITE_OFF_DAYS } from "./constants";
 import type { Application, Status } from "./types";
 import clsx from "clsx";
 
@@ -22,6 +22,24 @@ export function isStale(app: Application): boolean {
     if (isValid(next) && next < new Date()) return true;
   }
   return false;
+}
+
+const WRITE_OFF_STATUSES: Status[] = [
+  "Applied",
+  "OA/Assessment",
+  "Phone Screen",
+];
+
+/** Quiet early stages with no movement. Interview and Offer are never suggested. */
+export function isWriteOffCandidate(app: Application): boolean {
+  if (!WRITE_OFF_STATUSES.includes(app.status)) return false;
+  const sinceUpdate = daysSince(app.updatedAt);
+  if (sinceUpdate === null || sinceUpdate < WRITE_OFF_DAYS) return false;
+  if (app.nextActionDate) {
+    const next = parseISO(app.nextActionDate);
+    if (isValid(next) && next >= new Date()) return false;
+  }
+  return true;
 }
 
 /**

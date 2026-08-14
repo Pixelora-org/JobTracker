@@ -6,6 +6,7 @@ import { listResumes } from "@/lib/data/resumes";
 import { AppShellProvider } from "@/components/app-shell-provider";
 import { TopBar } from "@/components/top-bar";
 import { SetupNotice } from "@/components/setup-notice";
+import { UsernameSetup } from "@/components/username-setup";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,14 @@ export default async function AppLayout({
 
   await claimLegacyData();
 
+  if (!user.username) {
+    return (
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 sm:px-6">
+        <UsernameSetup />
+      </main>
+    );
+  }
+
   const [followUpCount, resumes] = await Promise.all([
     countDueFollowUps().catch(() => 0),
     listResumes().catch(() => []),
@@ -37,6 +46,7 @@ export default async function AppLayout({
       <TopBar
         email={user.email}
         name={user.name}
+        username={user.username}
         followUpCount={followUpCount}
       />
       <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 sm:px-6">

@@ -499,3 +499,134 @@ $$;
 
 revoke all on function public.consume_quota(text) from public;
 grant execute on function public.consume_quota(text) to authenticated;
+
+-- Friends and per-job chat. Additive; safe to re-run.
+create table if not exists public.friendships (
+  id uuid primary key default gen_random_uuid(),
+  requester_id text not null,
+  addressee_id text not null,
+  requester_email text,
+  addressee_email text,
+  requester_username text,
+  addressee_username text,
+  status text not null default 'pending' check (status in ('pending', 'accepted')),
+  created_at timestamptz not null default now(),
+  unique (requester_id, addressee_id)
+);
+
+alter table public.friendships add column if not exists requester_username text;
+alter table public.friendships add column if not exists addressee_username text;
+
+create table if not exists public.job_threads (
+  id uuid primary key default gen_random_uuid(),
+  application_id uuid references public.applications (id) on delete set null,
+  owner_id text not null,
+  peer_id text not null,
+  company text not null,
+  role text not null,
+  job_url text,
+  created_at timestamptz not null default now(),
+  unique (application_id, peer_id)
+);
+
+create table if not exists public.job_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.job_threads (id) on delete cascade,
+  user_id text not null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists friendships_requester_idx on public.friendships (requester_id);
+create index if not exists friendships_addressee_idx on public.friendships (addressee_id);
+create index if not exists job_threads_owner_idx on public.job_threads (owner_id);
+create index if not exists job_threads_peer_idx on public.job_threads (peer_id);
+create index if not exists job_messages_thread_idx on public.job_messages (thread_id, created_at);
+
+alter table public.friendships enable row level security;
+alter table public.job_threads enable row level security;
+alter table public.job_messages enable row level security;
+
+drop policy if exists "Users read own friendships" on public.friendships;
+create policy "Users read own friendships"
+  on public.friendships for select
+  to authenticated
+  using (
+    (select public.clerk_user_id()) in (requester_id, addressee_id)
+  );
+
+drop policy if exists "Users insert friendships" on public.friendships;
+create policy "Users insert friendships"
+  on public.friendships for insert
+  to authenticated
+  with check ((select public.clerk_user_id()) = requester_id);
+
+drop policy if exists "Users update own friendships" on public.friendships;
+create policy "Users update own friendships"
+  on public.friendships for update
+  to authenticated
+  using (
+    (select public.clerk_user_id()) in (requester_id, addressee_id)
+  )
+  with check (
+    (select public.clerk_user_id()) in (requester_id, addressee_id)
+  );
+
+drop policy if exists "Users delete own friendships" on public.friendships;
+create policy "Users delete own friendships"
+  on public.friendships for delete
+  to authenticated
+  using (
+    (select public.clerk_user_id()) in (requester_id, addressee_id)
+  );
+
+alter table public.job_threads drop constraint if exists job_threads_application_id_fkey;
+alter table public.job_threads
+  add constraint job_threads_application_id_fkey
+  foreign key (application_id) references public.applications (id) on delete set null;
+
+drop policy if exists "Users read own threads" on public.job_threads;
+create policy "Users read own threads"
+  on public.job_threads for select
+  to authenticated
+  using (
+    (select public.clerk_user_id()) in (owner_id, peer_id)
+  );
+
+drop policy if exists "Users insert threads" on public.job_threads;
+create policy "Users insert threads"
+  on public.job_threads for insert
+  to authenticated
+  with check ((select public.clerk_user_id()) = owner_id);
+
+drop policy if exists "Users read thread messages" on public.job_messages;
+create policy "Users read thread messages"
+  on public.job_messages for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.job_threads t
+      where t.id = thread_id
+        and (select public.clerk_user_id()) in (t.owner_id, t.peer_id)
+    )
+  );
+
+drop policy if exists "Users insert thread messages" on public.job_messages;
+create policy "Users insert thread messages"
+  on public.job_messages for insert
+  to authenticated
+  with check (
+    (select public.clerk_user_id()) = user_id
+    and exists (
+      select 1 from public.job_threads t
+      where t.id = thread_id
+        and (select public.clerk_user_id()) in (t.owner_id, t.peer_id)
+    )
+  );
+
+do $$
+begin
+  alter publication supabase_realtime add table public.job_messages;
+exception
+  when duplicate_object then null;
+end $$;

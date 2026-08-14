@@ -26,7 +26,15 @@ export default function ClerkAuthCatchAll() {
     return <TaskSetupMFA redirectUrlComplete="/board" />;
   }
   if (path.includes("sign-up") || path.includes("setup-account")) {
-    return <SignUp fallbackRedirectUrl="/board" signInUrl="/sign-in" />;
+    return (
+      <div className="space-y-4">
+        <p className="text-center text-sm text-muted">
+          After Google or email, pick a username. Friends add you with that
+          handle, not your email.
+        </p>
+        <SignUp fallbackRedirectUrl="/board" signInUrl="/sign-in" />
+      </div>
+    );
   }
 
   return <SignIn fallbackRedirectUrl="/board" signUpUrl="/sign-up" />;

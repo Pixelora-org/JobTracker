@@ -8,9 +8,7 @@ import {
 } from "@/lib/data/resumes";
 import { getUser } from "@/lib/supabase/server";
 
-export type ActionResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+import type { ActionResult } from "@/lib/actions/result";
 
 function message(e: unknown, fallback: string) {
   return e instanceof Error ? e.message : fallback;

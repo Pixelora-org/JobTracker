@@ -43,12 +43,12 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
-            Dashboard
+            Pipeline
           </p>
           <h1 className="text-xl font-medium tracking-tight">Board</h1>
         </div>
         <p className="text-sm text-muted">
-          Drag cards to update status. Stale apps (10d+) are highlighted.
+          Pick a stage. Drag a card onto another stage to move it.
         </p>
       </div>
 
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
           {applications.length === 0 ? (
             <EmptyState
               title="No applications yet"
-              description="This is the kanban. Add a role and it lands in a column. Strategy is a separate page for daily volume."
+              description="Add a role and it lands in Wishlist. Open a stage to work that list."
               action={<AddApplicationButton />}
             />
           ) : (

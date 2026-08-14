@@ -38,13 +38,13 @@ const ATS_HOSTS = [
 
 const GENERIC_SUBDOMAINS = ["www", "careers", "career", "jobs", "job", "apply", "boards"];
 
-export type DomainGuess = {
+type DomainGuess = {
   domain: string;
   /** Whether we read it off the posting or fell back to the company name. */
   source: "job-link" | "company-name";
 };
 
-export function slugify(value: string) {
+function slugify(value: string) {
   return value
     .toLowerCase()
     .replace(/&/g, "and")
@@ -104,7 +104,7 @@ export function guessCompanyDomain(app: Application): DomainGuess {
   return host ? { domain: host, source: "job-link" } : fallback;
 }
 
-export type PeopleSearch = {
+type PeopleSearch = {
   key: string;
   label: string;
   description: string;
@@ -114,13 +114,13 @@ export type PeopleSearch = {
   googleUrl: string;
 };
 
-export function linkedinPeopleUrl(query: string) {
+function linkedinPeopleUrl(query: string) {
   return `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
     query
   )}`;
 }
 
-export function googleProfileUrl(query: string) {
+function googleProfileUrl(query: string) {
   return `https://www.google.com/search?q=${encodeURIComponent(
     `site:linkedin.com/in ${query}`
   )}`;

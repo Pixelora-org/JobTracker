@@ -15,7 +15,7 @@ import {
 } from "@/lib/types";
 import { Button, ErrorBanner, Field, Input, Select, Textarea } from "@/components/ui";
 
-export type ApplicationOption = { id: string; label: string };
+type ApplicationOption = { id: string; label: string };
 
 function defaultFollowUp() {
   const d = new Date();

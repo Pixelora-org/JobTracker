@@ -24,7 +24,7 @@ Rules:
   security roles; Software Engineering for general engineering roles.
 - Interpret relative dates against the provided current date.`;
 
-export type ExtractContext = {
+type ExtractContext = {
   applications: Pick<Application, "id" | "company" | "role" | "status">[];
 };
 
