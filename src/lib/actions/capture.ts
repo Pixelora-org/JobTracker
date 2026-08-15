@@ -116,6 +116,9 @@ export async function captureAction(text: string): Promise<CaptureResult> {
             date: sentAt.slice(0, 10),
             followUpDate: followUp.slice(0, 10),
             notes: t.notes ?? "",
+            contactEmail: t.contactEmail ?? "",
+            contactTitle: t.contactTitle ?? "",
+            contactLinkedinUrl: t.contactLinkedinUrl ?? "",
           },
         },
       };

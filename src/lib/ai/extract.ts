@@ -18,6 +18,7 @@ Rules:
 - Map to the allowed enum values; if nothing fits, use null.
 - Treat text written in first person about reaching out ("I emailed",
   "sent a connection request", "dropped a cold email") as a touchpoint.
+- Pull email addresses and LinkedIn URLs out of signatures and headers.
 - For a job posting, default status to "Applied" and pick the source from how
   the posting is described (LinkedIn, company site, referral, etc).
 - Classify track as Cybersecurity for security, appsec, SOC, GRC, or offensive

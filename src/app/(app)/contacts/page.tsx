@@ -1,25 +1,30 @@
 import { OutreachTabs, type OutreachTab } from "@/components/outreach-tabs";
 import { EmptyState } from "@/components/ui";
+import { isAiConfigured } from "@/lib/ai/model";
 import { listApplications } from "@/lib/data/applications";
+import { listContacts } from "@/lib/data/contacts";
 import { listDueFollowUps, listTouchpoints } from "@/lib/data/touchpoints";
-import type { Application, Touchpoint } from "@/lib/types";
+import type { Application, Contact, Touchpoint } from "@/lib/types";
 
 export default async function OutreachPage({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const tab: OutreachTab = (await searchParams).tab === "due" ? "due" : "all";
+  const requested = (await searchParams).tab;
+  const tab: OutreachTab = requested === "due" ? "due" : "people";
   let touchpoints: Touchpoint[] = [];
   let due: Touchpoint[] = [];
   let applications: Application[] = [];
+  let contacts: Contact[] = [];
   let loadError: string | null = null;
 
   try {
-    [touchpoints, due, applications] = await Promise.all([
+    [touchpoints, due, applications, contacts] = await Promise.all([
       listTouchpoints(),
       listDueFollowUps(),
       listApplications(),
+      listContacts().catch(() => []),
     ]);
   } catch (e) {
     loadError =
@@ -36,7 +41,7 @@ export default async function OutreachPage({
         </p>
         <h1 className="text-xl font-medium tracking-tight">Outreach</h1>
         <p className="mt-1 text-sm text-muted">
-          Every message you have sent, and the ones waiting on a reply.
+          People you have written to, and the ones waiting on a reply.
         </p>
       </div>
 
@@ -45,12 +50,14 @@ export default async function OutreachPage({
       ) : (
         <OutreachTabs
           touchpoints={touchpoints}
+          contacts={contacts}
           due={due}
           applicationOptions={applications.map((a) => ({
             id: a.id,
             label: `${a.company} · ${a.role}`,
           }))}
           initialTab={tab}
+          aiEnabled={isAiConfigured}
         />
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import { computeConversionFunnel } from "@/lib/utils";
 import type { Application } from "@/lib/types";
+import { CountUp } from "@/components/count-up";
 import { MicroLabel } from "@/components/ui";
 
 export function FunnelStrip({ applications }: { applications: Application[] }) {
@@ -30,7 +31,7 @@ export function FunnelStrip({ applications }: { applications: Application[] }) {
           >
             <div className="flex items-center gap-2">
               <span className="font-mono text-2xl font-medium tabular-nums text-text">
-                {stage.count}
+                <CountUp value={stage.count} />
               </span>
               {i > 0 ? (
                 <span className="font-mono text-[11px] text-accent">

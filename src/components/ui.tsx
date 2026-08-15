@@ -172,16 +172,24 @@ export function TabBar({
 export function StatusPill({
   status,
   color,
+  className,
+  style,
 }: {
   status: string;
   color: string;
+  className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
-      className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[11px] font-medium"
+      className={cn(
+        "inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[11px] font-medium",
+        className
+      )}
       style={{
         color,
         backgroundColor: `color-mix(in srgb, ${color} 14%, white)`,
+        ...style,
       }}
     >
       {status}

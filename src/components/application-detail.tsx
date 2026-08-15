@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DossierLink } from "@/components/dossier-link";
+import { dossierStatusStyle, dossierTitleStyle } from "@/lib/motion";
 import { deleteApplicationAction } from "@/lib/actions/applications";
-import { deleteTouchpointAction } from "@/lib/actions/touchpoints";
 import { STATUS_COLORS } from "@/lib/constants";
 import type { Application, Touchpoint } from "@/lib/types";
 import { cn, daysSince, isStale } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { useAppShell } from "@/components/app-shell-provider";
 import { OutreachPanel } from "@/components/outreach-panel";
 import { ShareJob } from "@/components/share-job";
 import { TouchpointForm } from "@/components/touchpoint-form";
+import { TouchpointTimeline } from "@/components/touchpoint-timeline";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Button,
@@ -21,7 +22,7 @@ import {
   TabBar,
 } from "@/components/ui";
 
-type Tab = "overview" | "outreach" | "activity";
+type Tab = "overview" | "outreach";
 
 /**
  * The one line that says what to do next. Derived from fields we already store,
@@ -81,21 +82,13 @@ export function ApplicationDetail({
   const [showFullNotes, setShowFullNotes] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [confirm, setConfirm] = useState<
-    | { kind: "application" }
-    | { kind: "touchpoint"; id: string; name: string }
-    | null
-  >(null);
+  const [confirm, setConfirm] = useState<{ kind: "application" } | null>(null);
   const stale = isStale(application);
   const days = daysSince(application.updatedAt);
   const action = nextAction(application, touchpoints);
 
   function pickTab(next: string) {
-    const value = (["overview", "outreach", "activity"] as const).includes(
-      next as Tab
-    )
-      ? (next as Tab)
-      : "overview";
+    const value: Tab = next === "outreach" ? "outreach" : "overview";
     setTab(value);
     window.history.replaceState(
       null,
@@ -120,29 +113,20 @@ export function ApplicationDetail({
     });
   }
 
-  function onDeleteTouchpoint(id: string) {
-    startTransition(async () => {
-      const result = await deleteTouchpointAction(id, application.id);
-      setConfirm(null);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
-
   return (
     <div className="mx-auto max-w-[1000px] space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <Link
+          <DossierLink
             href="/board"
             className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted hover:text-text"
           >
             ← Board
-          </Link>
-          <h1 className="mt-2 text-2xl font-medium tracking-tight text-text">
+          </DossierLink>
+          <h1
+            className="mt-2 text-2xl font-medium tracking-tight text-text"
+            style={dossierTitleStyle(application.id)}
+          >
             {application.company}
           </h1>
           <p className="mt-1 text-muted">{application.role}</p>
@@ -150,6 +134,7 @@ export function ApplicationDetail({
             <StatusPill
               status={application.status}
               color={STATUS_COLORS[application.status]}
+              style={dossierStatusStyle(application.id)}
             />
             <span className="font-mono text-[11px] text-muted">
               {application.track}
@@ -204,8 +189,11 @@ export function ApplicationDetail({
         onSelect={pickTab}
         items={[
           { id: "overview", label: "Overview" },
-          { id: "outreach", label: "Outreach" },
-          { id: "activity", label: `Activity (${touchpoints.length})` },
+          {
+            id: "outreach",
+            label: "Outreach",
+            badge: touchpoints.length || undefined,
+          },
         ]}
       />
 
@@ -279,109 +267,52 @@ export function ApplicationDetail({
       ) : null}
 
       {tab === "outreach" ? (
-        <OutreachPanel
-          application={application}
-          apolloEnabled={apolloEnabled}
-          aiEnabled={aiEnabled}
-        />
-      ) : null}
-
-      {tab === "activity" ? (
-        <section className="space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-base font-medium">Touchpoints</h2>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowManualForm((v) => !v)}
-            >
-              {showManualForm ? "Close" : "Log manually"}
-            </Button>
-          </div>
-          {showManualForm ? (
-            <TouchpointForm
-              applicationId={application.id}
-              defaultCompany={application.company}
-              onDone={() => setShowManualForm(false)}
-            />
-          ) : null}
-          <ul className="space-y-2">
-            {touchpoints.map((t) => (
-              <li
-                key={t.id}
-                className="rounded-lg border border-border bg-surface px-4 py-3"
+        <div className="space-y-5">
+          <OutreachPanel
+            application={application}
+            apolloEnabled={apolloEnabled}
+            aiEnabled={aiEnabled}
+          />
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-base font-medium">Logged</h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowManualForm((v) => !v)}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium">
-                      {t.contactName}
-                      {t.contactTitle ? (
-                        <span className="ml-2 text-xs font-normal text-muted">
-                          {t.contactTitle}
-                        </span>
-                      ) : null}
-                    </p>
-                    <p className="mt-0.5 font-mono text-[11px] text-muted">
-                      {t.channel} · {t.type} · {t.status} · {t.date.slice(0, 10)}
-                    </p>
-                    {t.contactEmail ? (
-                      <p className="mt-0.5 font-mono text-[11px] text-accent">
-                        {t.contactEmail}
-                      </p>
-                    ) : null}
-                    {t.notes ? (
-                      <p className="mt-2 text-sm text-muted">{t.notes}</p>
-                    ) : null}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={pending}
-                    onClick={() =>
-                      setConfirm({
-                        kind: "touchpoint",
-                        id: t.id,
-                        name: t.contactName,
-                      })
-                    }
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </li>
-            ))}
-            {touchpoints.length === 0 ? (
-              <li className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted">
-                No outreach logged yet. Draft a message in the Outreach tab, then
-                log it as sent.
-              </li>
+                {showManualForm ? "Close" : "Log another"}
+              </Button>
+            </div>
+            {showManualForm ? (
+              <div className="rounded-lg border border-border bg-surface p-4">
+                <TouchpointForm
+                  applicationId={application.id}
+                  defaultCompany={application.company}
+                  allowPaste
+                  aiEnabled={aiEnabled}
+                  onDone={() => setShowManualForm(false)}
+                />
+              </div>
             ) : null}
-          </ul>
-        </section>
+            <TouchpointTimeline
+              touchpoints={touchpoints}
+              empty="Nothing logged for this role yet. Find someone above, or log a message you already sent."
+            />
+          </section>
+        </div>
       ) : null}
 
       <ConfirmDialog
         open={confirm !== null}
-        title={
-          confirm?.kind === "touchpoint"
-            ? `Delete ${confirm.name}?`
-            : `Delete ${application.company}?`
-        }
-        description={
-          confirm?.kind === "touchpoint"
-            ? "This outreach and any follow-up reminder on it are removed."
-            : `${application.role}. Logged outreach stays under Outreach, but is no longer tied to this role.`
-        }
+        title={`Delete ${application.company}?`}
+        description={`${application.role}. Logged outreach stays under Outreach, but is no longer tied to this role.`}
         busy={pending}
         onCancel={() => {
           if (!pending) setConfirm(null);
         }}
-        onConfirm={() => {
-          if (confirm?.kind === "touchpoint") onDeleteTouchpoint(confirm.id);
-          else onDelete();
-        }}
+        onConfirm={onDelete}
       />
     </div>
   );

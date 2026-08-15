@@ -12,6 +12,7 @@ import { createTouchpointAction } from "@/lib/actions/touchpoints";
 import type { OutreachDraft } from "@/lib/ai/outreach";
 import type { ContactSearch, OutreachContact } from "@/lib/outreach/apollo";
 import { DEFAULT_FOLLOW_UP_DAYS } from "@/lib/constants";
+import { addDaysInput, dateInputToIso, todayInput } from "@/lib/dates";
 import {
   buildPeopleSearches,
   companyPeopleUrl,
@@ -207,6 +208,9 @@ export function OutreachPanel({
   const [drafting, startDraft] = useTransition();
   const [logging, startLog] = useTransition();
   const [planning, startPlan] = useTransition();
+  const [followUpDate, setFollowUpDate] = useState(() =>
+    addDaysInput(todayInput(), DEFAULT_FOLLOW_UP_DAYS)
+  );
   const planRequested = useRef(Boolean(application.searchPlan));
 
   const searches = useMemo(
@@ -322,8 +326,6 @@ export function OutreachPanel({
 
   function logTouchpoint() {
     setError(null);
-    const followUp = new Date();
-    followUp.setDate(followUp.getDate() + DEFAULT_FOLLOW_UP_DAYS);
 
     startLog(async () => {
       const res = await createTouchpointAction({
@@ -332,13 +334,15 @@ export function OutreachPanel({
         company: application.company,
         channel,
         type: "Cold outreach",
-        date: new Date().toISOString(),
+        date: dateInputToIso(todayInput()),
         status: "Sent",
         notes:
           channel === "Email"
             ? (draft?.emailBody ?? "")
             : (draft?.connectionNote ?? ""),
-        followUpDate: followUp.toISOString(),
+        followUpDate: followUpDate
+          ? dateInputToIso(followUpDate)
+          : undefined,
         contactEmail: contactEmail.trim() || undefined,
         contactTitle: contactTitle.trim() || undefined,
         contactLinkedinUrl: selected?.linkedinUrl ?? undefined,
@@ -635,9 +639,18 @@ export function OutreachPanel({
           >
             {logging ? "Logging…" : "Log as sent"}
           </Button>
+          <label className="flex items-center gap-2 font-mono text-[11px] text-muted">
+            Follow up
+            <Input
+              type="date"
+              className="h-8 w-auto font-mono"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+            />
+          </label>
           {logged ? (
             <span className="font-mono text-[11px] text-[#1F9D5A]">
-              Logged · follow up in {DEFAULT_FOLLOW_UP_DAYS} days
+              Logged · follow up {followUpDate}
             </span>
           ) : null}
         </div>

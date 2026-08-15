@@ -21,6 +21,7 @@ import {
   type JobFilters,
 } from "@/lib/jobs/filters";
 import { sponsorshipLabel, type SponsorshipSignal } from "@/lib/jobs/sponsorship";
+import { staggerStyle } from "@/lib/motion";
 import type { Resume } from "@/lib/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
@@ -337,14 +338,15 @@ export function JobSearch({
         </p>
       ) : null}
 
-      <ul className="space-y-2">
-        {listings.map((listing) => {
+      <ul key={queryUsed} className="stagger-in space-y-2">
+        {listings.map((listing, i) => {
           const savedId = saved[listing.id];
           const badge = sponsorshipLabel(listing.sponsorship);
           const posted = postedAgo(listing.postedAt);
           return (
             <li
               key={listing.id}
+              style={staggerStyle(i)}
               className="rounded-lg border border-border bg-surface px-4 py-3"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

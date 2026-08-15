@@ -93,3 +93,84 @@ body {
   animation: funnel-grow 320ms ease-out;
   transform-origin: left center;
 }
+
+@keyframes stagger-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.stagger-in > * {
+  animation: stagger-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 40ms);
+}
+
+@keyframes stage-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
+
+.stage-pulse {
+  animation: stage-pulse 450ms ease-out;
+}
+
+.offer-burst {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.offer-burst span {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: burst-out 600ms ease-out forwards;
+}
+
+@keyframes burst-out {
+  0% {
+    transform: rotate(var(--a)) translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a)) translateY(-92px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-in-right,
+  .animate-funnel,
+  .stagger-in > *,
+  .stage-pulse,
+  .offer-burst span {
+    animation: none;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

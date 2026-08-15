@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -26,8 +25,10 @@ import {
 } from "@/lib/constants";
 import type { Application, Status } from "@/lib/types";
 import { cn, daysSince, isStale, isWriteOffCandidate } from "@/lib/utils";
+import { DossierLink } from "@/components/dossier-link";
 import { useAppShell } from "@/components/app-shell-provider";
-import { ErrorBanner } from "@/components/ui";
+import { ErrorBanner, StatusPill } from "@/components/ui";
+import { dossierStatusStyle, dossierTitleStyle, staggerStyle } from "@/lib/motion";
 
 const COLUMN_LABEL: Record<Status, string> = {
   Wishlist: "Wishlist",
@@ -72,13 +73,14 @@ function ApplicationCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <Link
+          <DossierLink
             href={`/applications/${app.id}`}
             className="block truncate text-sm font-medium text-text hover:text-accent"
+            style={overlay ? undefined : dossierTitleStyle(app.id)}
             onClick={(e) => e.stopPropagation()}
           >
             {app.company}
-          </Link>
+          </DossierLink>
           <p className="mt-0.5 truncate text-sm text-muted">{app.role}</p>
         </div>
         {writeOff ? (
@@ -92,9 +94,11 @@ function ApplicationCard({
         ) : null}
       </div>
       <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="truncate font-mono text-[11px] text-muted">
-          {app.track}
-        </span>
+        <StatusPill
+          status={app.status}
+          color={color}
+          style={overlay ? undefined : dossierStatusStyle(app.id)}
+        />
         <span
           className="font-mono text-[11px] tabular-nums text-muted"
           title="Days since last update"
@@ -158,14 +162,18 @@ function StageTab({
   count,
   color,
   selected,
+  pulse,
   onSelect,
+  style,
 }: {
   id: StageId;
   label: string;
   count: number;
   color: string;
   selected: boolean;
+  pulse?: boolean;
   onSelect: () => void;
+  style?: React.CSSProperties;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -174,12 +182,14 @@ function StageTab({
       ref={setNodeRef}
       type="button"
       onClick={onSelect}
+      style={style}
       className={cn(
         "flex items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
         selected
           ? "bg-accent-soft text-text"
           : "text-muted hover:bg-background hover:text-text",
-        isOver && "ring-1 ring-accent"
+        isOver && "ring-1 ring-accent",
+        pulse && "stage-pulse"
       )}
     >
       <span className="flex min-w-0 items-center gap-2">
@@ -224,7 +234,7 @@ export function KanbanBoard({
   initialApplications: Application[];
 }) {
   const router = useRouter();
-  const { searchQuery } = useAppShell();
+  const { searchQuery, celebrateOffer } = useAppShell();
   const [apps, setApps] = useState(initialApplications);
   const [baseline, setBaseline] = useState(initialApplications);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -233,6 +243,7 @@ export function KanbanBoard({
   const [stage, setStage] = useState<StageId>(() =>
     defaultStage(groupByStatus(initialApplications))
   );
+  const [pulseStage, setPulseStage] = useState<StageId | null>(null);
   const [, startTransition] = useTransition();
 
   if (initialApplications !== baseline) {
@@ -302,6 +313,11 @@ export function KanbanBoard({
     if (CLOSED_KANBAN_COLUMNS.includes(nextStatus)) setStage("Closed");
     else setStage(nextStatus);
 
+    if (nextStatus === "Interview") {
+      setPulseStage("Interview");
+      window.setTimeout(() => setPulseStage(null), 450);
+    }
+
     startTransition(async () => {
       const result = await updateApplicationStatusAction(appId, nextStatus);
       if (!result.ok) {
@@ -309,6 +325,7 @@ export function KanbanBoard({
         setError(result.error);
         return;
       }
+      if (nextStatus === "Offer") celebrateOffer();
       router.refresh();
     });
   }
@@ -343,8 +360,8 @@ export function KanbanBoard({
         onDragEnd={onDragEnd}
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-          <nav className="flex gap-1 overflow-x-auto lg:w-48 lg:shrink-0 lg:flex-col lg:overflow-visible">
-            {ACTIVE_KANBAN_COLUMNS.map((status) => (
+          <nav className="stagger-in flex gap-1 overflow-x-auto lg:w-48 lg:shrink-0 lg:flex-col lg:overflow-visible">
+            {ACTIVE_KANBAN_COLUMNS.map((status, i) => (
               <StageTab
                 key={status}
                 id={status}
@@ -352,7 +369,9 @@ export function KanbanBoard({
                 count={byStatus[status].length}
                 color={STATUS_COLORS[status]}
                 selected={stage === status}
+                pulse={pulseStage === status}
                 onSelect={() => setStage(status)}
+                style={staggerStyle(i)}
               />
             ))}
             <div className="hidden h-px bg-border lg:block" />
@@ -363,6 +382,7 @@ export function KanbanBoard({
               color="#9B2C3D"
               selected={stage === "Closed"}
               onSelect={() => setStage("Closed")}
+              style={staggerStyle(ACTIVE_KANBAN_COLUMNS.length)}
             />
           </nav>
 
@@ -394,14 +414,15 @@ export function KanbanBoard({
                 {COLUMN_LABEL[stage]}.
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {visible.map((app) => (
-                  <DraggableCard
-                    key={app.id}
-                    app={app}
-                    writingOff={writingOffId === app.id}
-                    onWriteOff={() => writeOff(app.id)}
-                  />
+              <div key={stage} className="stagger-in grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {visible.map((app, i) => (
+                  <div key={app.id} style={staggerStyle(i)}>
+                    <DraggableCard
+                      app={app}
+                      writingOff={writingOffId === app.id}
+                      onWriteOff={() => writeOff(app.id)}
+                    />
+                  </div>
                 ))}
               </div>
             )}

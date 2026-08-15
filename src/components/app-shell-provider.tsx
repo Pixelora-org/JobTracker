@@ -10,14 +10,16 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import type { Application, ApplicationInput } from "@/lib/types";
-import { ApplicationSlideOver } from "@/components/application-form";
+import { ApplicationDialog } from "@/components/application-form";
 import { CommandPalette, type Command } from "@/components/command-palette";
+import { OfferBurst } from "@/components/offer-burst";
 import { QuickCapture } from "@/components/quick-capture";
 
 type ShellContextValue = {
   openCapture: () => void;
   openCreateApplication: (initialValues?: Partial<ApplicationInput>) => void;
   openEditApplication: (app: Application) => void;
+  celebrateOffer: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
 };
@@ -44,6 +46,7 @@ export function AppShellProvider({
   const [editing, setEditing] = useState<Application | null>(null);
   const [prefill, setPrefill] = useState<Partial<ApplicationInput> | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
+  const [offerBurst, setOfferBurst] = useState(false);
 
   const openCapture = useCallback(() => setCaptureOpen(true), []);
 
@@ -61,6 +64,9 @@ export function AppShellProvider({
     setPrefill(undefined);
     setFormOpen(true);
   }, []);
+
+  const celebrateOffer = useCallback(() => setOfferBurst(true), []);
+  const stopBurst = useCallback(() => setOfferBurst(false), []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -124,14 +130,22 @@ export function AppShellProvider({
       openCapture,
       openCreateApplication,
       openEditApplication,
+      celebrateOffer,
       searchQuery,
       setSearchQuery,
     }),
-    [openCapture, openCreateApplication, openEditApplication, searchQuery]
+    [
+      openCapture,
+      openCreateApplication,
+      openEditApplication,
+      celebrateOffer,
+      searchQuery,
+    ]
   );
 
   return (
     <ShellContext.Provider value={value}>
+      <OfferBurst play={offerBurst} onDone={stopBurst} />
       {children}
       {paletteOpen ? (
         <CommandPalette
@@ -142,21 +156,16 @@ export function AppShellProvider({
       <QuickCapture
         open={captureOpen}
         onClose={() => setCaptureOpen(false)}
-        onApplicationDraft={(draft) => {
-          setCaptureOpen(false);
-          openCreateApplication(draft.values);
-        }}
-        onManual={() => {
-          setCaptureOpen(false);
-          openCreateApplication();
-        }}
+        resumeOptions={resumeOptions}
+        onOffer={celebrateOffer}
       />
-      <ApplicationSlideOver
+      <ApplicationDialog
         open={formOpen}
         application={editing}
         initialValues={prefill}
         resumeOptions={resumeOptions}
         onClose={() => setFormOpen(false)}
+        onOffer={celebrateOffer}
       />
     </ShellContext.Provider>
   );

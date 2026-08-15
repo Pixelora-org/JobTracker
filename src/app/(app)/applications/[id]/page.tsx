@@ -43,7 +43,7 @@ export default async function ApplicationDetailPage({
       apolloEnabled={isApolloConfigured}
       aiEnabled={isAiConfigured}
       friends={friends}
-      initialTab={tab === "outreach" || tab === "activity" ? tab : "overview"}
+      initialTab={tab === "outreach" || tab === "activity" ? "outreach" : "overview"}
     />
   );
 }

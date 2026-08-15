@@ -2,6 +2,7 @@
 
 import { addDays } from "date-fns";
 import { revalidatePath } from "next/cache";
+import { upsertContact } from "@/lib/data/contacts";
 import {
   createTouchpoint,
   deleteTouchpoint,
@@ -33,11 +34,62 @@ export async function createTouchpointAction(
       return { ok: false, error: "Contact name and company are required." };
     }
 
-    const tp = await createTouchpoint(input, user.id);
+    const contact = await upsertContact(
+      {
+        name: input.contactName,
+        company: input.company,
+        email: input.contactEmail,
+        linkedinUrl: input.contactLinkedinUrl,
+        title: input.contactTitle,
+      },
+      user.id
+    );
+
+    const tp = await createTouchpoint(
+      { ...input, contactId: contact.id },
+      user.id
+    );
     revalidateTouchPaths(tp.applicationId);
     return { ok: true, data: { id: tp.id } };
   } catch (e) {
     return { ok: false, error: message(e, "Failed to create touchpoint") };
+  }
+}
+
+export async function updateTouchpointAction(
+  id: string,
+  input: Partial<TouchpointInput>
+): Promise<ActionResult> {
+  try {
+    const user = await getUser();
+    if (!user) return { ok: false, error: "You are signed out." };
+    if (input.contactName !== undefined && !input.contactName.trim()) {
+      return { ok: false, error: "Contact name is required." };
+    }
+    if (input.company !== undefined && !input.company.trim()) {
+      return { ok: false, error: "Company is required." };
+    }
+
+    let patch = { ...input };
+    if (input.contactName && input.company) {
+      const contact = await upsertContact(
+        {
+          name: input.contactName,
+          company: input.company,
+          email: input.contactEmail,
+          linkedinUrl: input.contactLinkedinUrl,
+          title: input.contactTitle,
+        },
+        user.id
+      );
+      patch = { ...patch, contactId: contact.id };
+    }
+
+    const tp = await updateTouchpoint(id, patch);
+    revalidateTouchPaths(tp.applicationId);
+    return { ok: true, data: undefined };
+  } catch (e) {
+    return { ok: false, error: message(e, "Failed to update touchpoint") };
   }
 }
 

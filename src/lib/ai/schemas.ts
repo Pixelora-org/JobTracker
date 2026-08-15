@@ -76,6 +76,15 @@ export const captureSchema = z.object({
           "The id of the existing application this outreach belongs to, chosen only from the provided list. Null if none clearly match."
         ),
       notes: z.string().nullable(),
+      contactEmail: z
+        .string()
+        .nullable()
+        .describe("Email address if present in the paste or signature"),
+      contactTitle: z.string().nullable(),
+      contactLinkedinUrl: z
+        .string()
+        .nullable()
+        .describe("LinkedIn profile URL if present"),
     })
     .nullable(),
 });

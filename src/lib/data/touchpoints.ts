@@ -12,6 +12,7 @@ type TouchpointRow = {
   id: string;
   user_id: string;
   application_id: string | null;
+  contact_id: string | null;
   contact_name: string;
   company: string;
   channel: Channel;
@@ -29,13 +30,14 @@ type TouchpointRow = {
 };
 
 const TOUCHPOINT_COLUMNS =
-  "id, user_id, application_id, contact_name, company, channel, type, date, status, notes, follow_up_date, follow_up_done, contact_email, contact_title, contact_linkedin_url, created_at, updated_at";
+  "id, user_id, application_id, contact_id, contact_name, company, channel, type, date, status, notes, follow_up_date, follow_up_done, contact_email, contact_title, contact_linkedin_url, created_at, updated_at";
 
 function toTouchpoint(row: TouchpointRow): Touchpoint {
   return {
     id: row.id,
     userId: row.user_id,
     applicationId: row.application_id,
+    contactId: row.contact_id,
     contactName: row.contact_name,
     company: row.company,
     channel: row.channel,
@@ -57,6 +59,8 @@ function toRow(input: Partial<TouchpointInput>) {
   const row: Record<string, unknown> = {};
   if (input.applicationId !== undefined)
     row.application_id = emptyToUndefined(input.applicationId) ?? null;
+  if (input.contactId !== undefined)
+    row.contact_id = emptyToUndefined(input.contactId) ?? null;
   if (input.contactName !== undefined)
     row.contact_name = input.contactName.trim();
   if (input.company !== undefined) row.company = input.company.trim();

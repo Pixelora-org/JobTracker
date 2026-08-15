@@ -93,12 +93,25 @@ export type Application = {
   searchPlan?: SearchPlan | null;
 };
 
+export type Contact = {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  name: string;
+  email?: string | null;
+  linkedinUrl?: string | null;
+  company: string;
+  title?: string | null;
+};
+
 export type Touchpoint = {
   id: string;
   createdAt: string;
   updatedAt: string;
   userId: string;
   applicationId?: string | null;
+  contactId?: string | null;
   contactName: string;
   company: string;
   channel: Channel;
@@ -214,6 +227,7 @@ export type ApplicationInput = {
 
 export type TouchpointInput = {
   applicationId?: string;
+  contactId?: string;
   contactName: string;
   company: string;
   channel: Channel;

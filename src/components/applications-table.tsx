@@ -1,14 +1,15 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteApplicationAction } from "@/lib/actions/applications";
 import { STATUS_COLORS } from "@/lib/constants";
 import { SOURCES, STATUSES, TRACKS, type Application } from "@/lib/types";
 import { cn, daysSince, isStale } from "@/lib/utils";
+import { dossierStatusStyle, dossierTitleStyle } from "@/lib/motion";
 import { useAppShell } from "@/components/app-shell-provider";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DossierLink } from "@/components/dossier-link";
 import {
   Button,
   ErrorBanner,
@@ -201,12 +202,13 @@ export function ApplicationsTable({
                     )}
                   >
                     <td className="px-3 py-2.5">
-                      <Link
+                      <DossierLink
                         href={`/applications/${app.id}`}
                         className="font-medium text-text hover:text-accent"
+                        style={dossierTitleStyle(app.id)}
                       >
                         {app.company}
-                      </Link>
+                      </DossierLink>
                       {stale ? (
                         <span className="ml-2 font-mono text-[10px] uppercase text-stale">
                           stale
@@ -218,6 +220,7 @@ export function ApplicationsTable({
                       <StatusPill
                         status={app.status}
                         color={STATUS_COLORS[app.status]}
+                        style={dossierStatusStyle(app.id)}
                       />
                     </td>
                     <td className="px-3 py-2.5 font-mono text-[12px] tabular-nums text-muted">

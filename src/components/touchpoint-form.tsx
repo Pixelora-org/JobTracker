@@ -2,13 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createTouchpointAction } from "@/lib/actions/touchpoints";
+import { captureAction } from "@/lib/actions/capture";
+import {
+  createTouchpointAction,
+  updateTouchpointAction,
+} from "@/lib/actions/touchpoints";
 import { DEFAULT_FOLLOW_UP_DAYS } from "@/lib/constants";
+import { addDaysInput, dateInputToIso, toDateInput, todayInput } from "@/lib/dates";
 import {
   CHANNELS,
   TOUCHPOINT_STATUSES,
   TOUCHPOINT_TYPES,
   type Channel,
+  type Touchpoint,
   type TouchpointInput,
   type TouchpointStatus,
   type TouchpointType,
@@ -17,10 +23,49 @@ import { Button, ErrorBanner, Field, Input, Select, Textarea } from "@/component
 
 type ApplicationOption = { id: string; label: string };
 
-function defaultFollowUp() {
-  const d = new Date();
-  d.setDate(d.getDate() + DEFAULT_FOLLOW_UP_DAYS);
-  return d.toISOString().slice(0, 10);
+function emptyForm(
+  applicationId?: string,
+  defaultCompany = "",
+  initialValues?: Partial<TouchpointInput>
+): TouchpointInput {
+  const date = initialValues?.date
+    ? toDateInput(initialValues.date)
+    : todayInput();
+  const followUp = initialValues?.followUpDate
+    ? toDateInput(initialValues.followUpDate)
+    : addDaysInput(date, DEFAULT_FOLLOW_UP_DAYS);
+  return {
+    applicationId: applicationId || initialValues?.applicationId,
+    contactName: initialValues?.contactName ?? "",
+    company: initialValues?.company ?? defaultCompany,
+    channel: initialValues?.channel ?? "LinkedIn",
+    type: initialValues?.type ?? "Cold outreach",
+    date,
+    status: initialValues?.status ?? "Sent",
+    notes: initialValues?.notes ?? "",
+    followUpDate: followUp,
+    contactEmail: initialValues?.contactEmail ?? "",
+    contactTitle: initialValues?.contactTitle ?? "",
+    contactLinkedinUrl: initialValues?.contactLinkedinUrl ?? "",
+  };
+}
+
+function fromTouchpoint(t: Touchpoint): TouchpointInput {
+  return {
+    applicationId: t.applicationId ?? undefined,
+    contactId: t.contactId ?? undefined,
+    contactName: t.contactName,
+    company: t.company,
+    channel: t.channel,
+    type: t.type,
+    date: toDateInput(t.date),
+    status: t.status,
+    notes: t.notes ?? "",
+    followUpDate: t.followUpDate ? toDateInput(t.followUpDate) : "",
+    contactEmail: t.contactEmail ?? "",
+    contactTitle: t.contactTitle ?? "",
+    contactLinkedinUrl: t.contactLinkedinUrl ?? "",
+  };
 }
 
 export function TouchpointForm({
@@ -28,8 +73,11 @@ export function TouchpointForm({
   defaultCompany = "",
   initialValues,
   applicationOptions,
-  submitLabel = "Add touchpoint",
+  submitLabel,
   onDone,
+  allowPaste = false,
+  aiEnabled = false,
+  touchpoint,
 }: {
   applicationId?: string;
   defaultCompany?: string;
@@ -37,61 +85,135 @@ export function TouchpointForm({
   applicationOptions?: ApplicationOption[];
   submitLabel?: string;
   onDone?: () => void;
+  allowPaste?: boolean;
+  aiEnabled?: boolean;
+  touchpoint?: Touchpoint;
 }) {
   const router = useRouter();
+  const isEdit = Boolean(touchpoint);
   const [pending, startTransition] = useTransition();
+  const [extracting, startExtract] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<TouchpointInput>({
-    applicationId,
-    contactName: "",
-    company: defaultCompany,
-    channel: "LinkedIn",
-    type: "Cold outreach",
-    date: new Date().toISOString().slice(0, 10),
-    status: "Sent",
-    notes: "",
-    followUpDate: defaultFollowUp(),
-    ...initialValues,
-  });
+  const [paste, setPaste] = useState("");
+  const [followUpLocked, setFollowUpLocked] = useState(
+    Boolean(touchpoint?.followUpDate || initialValues?.followUpDate)
+  );
+  const [form, setForm] = useState<TouchpointInput>(() =>
+    touchpoint
+      ? fromTouchpoint(touchpoint)
+      : emptyForm(applicationId, defaultCompany, initialValues)
+  );
 
-  function set<K extends keyof TouchpointInput>(key: K, value: TouchpointInput[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  function set<K extends keyof TouchpointInput>(
+    key: K,
+    value: TouchpointInput[K]
+  ) {
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "date" && !followUpLocked && typeof value === "string") {
+        next.followUpDate = addDaysInput(value, DEFAULT_FOLLOW_UP_DAYS);
+      }
+      return next;
+    });
+  }
+
+  function extract() {
+    setError(null);
+    startExtract(async () => {
+      const result = await captureAction(paste);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      if (result.draft.kind !== "touchpoint") {
+        setError(
+          "That looks like a job posting. Use Quick add on the board to save a role."
+        );
+        return;
+      }
+      const values = result.draft.values;
+      const date = values.date ? toDateInput(values.date) : todayInput();
+      const followUp = values.followUpDate
+        ? toDateInput(values.followUpDate)
+        : addDaysInput(date, DEFAULT_FOLLOW_UP_DAYS);
+      setFollowUpLocked(Boolean(values.followUpDate));
+      setForm((prev) => ({
+        ...prev,
+        ...values,
+        date,
+        followUpDate: followUp,
+        applicationId: applicationId || values.applicationId || prev.applicationId,
+        company: values.company || prev.company || defaultCompany,
+      }));
+    });
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await createTouchpointAction({
+      const payload: TouchpointInput = {
         ...form,
         applicationId: applicationId || form.applicationId,
-        date: new Date(form.date).toISOString(),
+        date: dateInputToIso(form.date),
         followUpDate: form.followUpDate
-          ? new Date(form.followUpDate).toISOString()
+          ? dateInputToIso(form.followUpDate)
           : undefined,
-      });
+      };
+      const result = isEdit
+        ? await updateTouchpointAction(touchpoint!.id, payload)
+        : await createTouchpointAction(payload);
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setForm((prev) => ({
-        ...prev,
-        contactName: "",
-        notes: "",
-        date: new Date().toISOString().slice(0, 10),
-        followUpDate: defaultFollowUp(),
-      }));
+      if (!isEdit) {
+        setForm(emptyForm(applicationId, defaultCompany));
+        setPaste("");
+        setFollowUpLocked(false);
+      }
       onDone?.();
       router.refresh();
     });
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="space-y-3 rounded-lg border border-border bg-surface p-4"
-    >
+    <form onSubmit={submit} className="space-y-3">
       {error ? <ErrorBanner message={error} /> : null}
+
+      {allowPaste && !isEdit ? (
+        <div className="space-y-2">
+          <Field
+            label="Paste a message"
+            hint={
+              aiEnabled
+                ? "An email, LinkedIn note, or a name and address. Extract fills the fields."
+                : "AI is off, so fill the fields below."
+            }
+          >
+            <Textarea
+              value={paste}
+              onChange={(e) => setPaste(e.target.value)}
+              placeholder={
+                "Paste something like:\n\nHi Priya — following up on the Security Engineer role at Acme.\npriya@acme.com"
+              }
+              className="min-h-[88px]"
+            />
+          </Field>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={!aiEnabled || extracting || !paste.trim()}
+              onClick={extract}
+            >
+              {extracting ? "Reading…" : "Extract"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Contact">
           <Input
@@ -107,6 +229,29 @@ export function TouchpointForm({
             value={form.company}
             onChange={(e) => set("company", e.target.value)}
             placeholder="Acme Corp"
+          />
+        </Field>
+        <Field label="Email">
+          <Input
+            type="email"
+            value={form.contactEmail ?? ""}
+            onChange={(e) => set("contactEmail", e.target.value)}
+            placeholder="jordan@acme.com"
+          />
+        </Field>
+        <Field label="LinkedIn URL">
+          <Input
+            type="url"
+            value={form.contactLinkedinUrl ?? ""}
+            onChange={(e) => set("contactLinkedinUrl", e.target.value)}
+            placeholder="https://linkedin.com/in/…"
+          />
+        </Field>
+        <Field label="Title">
+          <Input
+            value={form.contactTitle ?? ""}
+            onChange={(e) => set("contactTitle", e.target.value)}
+            placeholder="Technical Recruiter"
           />
         </Field>
         <Field label="Channel">
@@ -133,23 +278,6 @@ export function TouchpointForm({
             ))}
           </Select>
         </Field>
-        <Field label="Date sent">
-          <Input
-            type="date"
-            className="font-mono"
-            required
-            value={form.date}
-            onChange={(e) => set("date", e.target.value)}
-          />
-        </Field>
-        <Field label="Follow up on">
-          <Input
-            type="date"
-            className="font-mono"
-            value={form.followUpDate ?? ""}
-            onChange={(e) => set("followUpDate", e.target.value)}
-          />
-        </Field>
         <Field label="Status">
           <Select
             value={form.status}
@@ -161,6 +289,33 @@ export function TouchpointForm({
               </option>
             ))}
           </Select>
+        </Field>
+        <Field label="Date sent">
+          <Input
+            type="date"
+            className="font-mono"
+            required
+            value={form.date}
+            onChange={(e) => set("date", e.target.value)}
+          />
+        </Field>
+        <Field
+          label="Follow up on"
+          hint={
+            followUpLocked
+              ? undefined
+              : `${DEFAULT_FOLLOW_UP_DAYS} days after the sent date`
+          }
+        >
+          <Input
+            type="date"
+            className="font-mono"
+            value={form.followUpDate ?? ""}
+            onChange={(e) => {
+              setFollowUpLocked(true);
+              set("followUpDate", e.target.value);
+            }}
+          />
         </Field>
         {applicationOptions ? (
           <Field label="Linked application">
@@ -187,7 +342,9 @@ export function TouchpointForm({
       </Field>
       <div className="flex justify-end">
         <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : submitLabel}
+          {pending
+            ? "Saving…"
+            : submitLabel ?? (isEdit ? "Save changes" : "Log outreach")}
         </Button>
       </div>
     </form>
