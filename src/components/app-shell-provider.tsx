@@ -122,6 +122,12 @@ export function AppShellProvider({
         label: "Friends",
         run: () => router.push("/friends"),
       },
+      {
+        id: "pods",
+        group: "Go to",
+        label: "Pods",
+        run: () => router.push("/pods"),
+      },
     ],
     [openCapture, openCreateApplication, router]
   );

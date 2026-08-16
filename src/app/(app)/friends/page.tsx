@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FriendsPanel } from "@/components/friends-panel";
 import { EmptyState } from "@/components/ui";
 import { listFriendships, listThreads } from "@/lib/data/friends";
@@ -32,8 +33,12 @@ export default async function FriendsPage() {
         </p>
         <h1 className="text-xl font-medium tracking-tight">Friends</h1>
         <p className="mt-1 text-sm text-muted">
-          Invite by username, then share a job from its application page to
-          open a thread.
+          1:1 shares. Send one job to one person. Chat exists only on that job.
+          Hunting with more than one person? Use a{" "}
+          <Link href="/pods" className="text-accent hover:underline">
+            pod
+          </Link>
+          .
         </p>
       </div>
 

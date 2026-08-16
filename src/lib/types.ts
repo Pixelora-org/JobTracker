@@ -272,3 +272,62 @@ export type JobMessage = {
   body: string;
   createdAt: string;
 };
+
+export type NotificationType = "job_share" | "pod_job";
+
+export type AppNotification = {
+  id: string;
+  userId: string;
+  actorId: string | null;
+  actorHandle: string | null;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  href: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type Pod = {
+  id: string;
+  name: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+export type PodMember = {
+  id: string;
+  podId: string;
+  userId: string;
+  handle: string | null;
+  status: "pending" | "accepted";
+  invitedBy: string | null;
+  createdAt: string;
+};
+
+export type PodJob = {
+  id: string;
+  podId: string;
+  addedBy: string;
+  company: string;
+  role: string;
+  jobUrl: string | null;
+  createdAt: string;
+};
+
+export type PodJobSave = {
+  id: string;
+  podJobId: string;
+  userId: string;
+  applicationId: string | null;
+  status: Status;
+  updatedAt: string;
+};
+
+export type PodMessage = {
+  id: string;
+  podJobId: string;
+  userId: string;
+  body: string;
+  createdAt: string;
+};

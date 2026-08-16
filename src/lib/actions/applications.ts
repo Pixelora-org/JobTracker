@@ -6,6 +6,7 @@ import {
   deleteApplication,
   updateApplication,
 } from "@/lib/data/applications";
+import { syncPodSavesForApplication } from "@/lib/data/pods";
 import { getUser } from "@/lib/supabase/server";
 import type { ApplicationInput, Status } from "@/lib/types";
 
@@ -16,6 +17,7 @@ function revalidateAppPaths(id?: string) {
   revalidatePath("/today");
   revalidatePath("/applications");
   revalidatePath("/resumes");
+  revalidatePath("/pods");
   if (id) revalidatePath(`/applications/${id}`);
 }
 
@@ -47,6 +49,9 @@ export async function updateApplicationAction(
 ): Promise<ActionResult> {
   try {
     await updateApplication(id, input);
+    if (input.status) {
+      await syncPodSavesForApplication(id, input.status).catch(() => undefined);
+    }
     revalidateAppPaths(id);
     return { ok: true, data: undefined };
   } catch (e) {
@@ -60,6 +65,7 @@ export async function updateApplicationStatusAction(
 ): Promise<ActionResult> {
   try {
     await updateApplication(id, { status });
+    await syncPodSavesForApplication(id, status).catch(() => undefined);
     revalidateAppPaths(id);
     return { ok: true, data: undefined };
   } catch (e) {

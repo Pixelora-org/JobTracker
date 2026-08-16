@@ -14,8 +14,10 @@ import {
   listThreads,
   updateFriendshipStatus,
 } from "@/lib/data/friends";
+import { createNotification } from "@/lib/data/notifications";
 import { listTouchpoints } from "@/lib/data/touchpoints";
 import { groupTouchpointsByPerson } from "@/lib/people";
+import { sameSharedJob } from "@/lib/friends";
 import { getUser } from "@/lib/supabase/server";
 
 import type { ActionResult } from "@/lib/actions/result";
@@ -191,17 +193,24 @@ export async function shareJobAction(input: {
     const app = await getApplication(input.applicationId);
     if (!app) return { ok: false, error: "Application not found." };
 
-    const existing = (await listThreads()).find(
-      (t) =>
-        t.applicationId === app.id &&
-        t.ownerId === user.id &&
-        t.peerId === input.friendUserId
-    );
+    const existing = (await listThreads()).find((t) => {
+      const between =
+        (t.ownerId === user.id && t.peerId === input.friendUserId) ||
+        (t.ownerId === input.friendUserId && t.peerId === user.id);
+      if (!between) return false;
+      return t.applicationId === app.id || sameSharedJob(t, app);
+    });
     const contactNote = input.includeContacts
       ? await formatSharedContacts(app.id)
       : null;
 
     if (existing) {
+      if (existing.ownerId !== user.id) {
+        return {
+          ok: false,
+          error: "They already shared this job with you. Open that thread instead of sending it back.",
+        };
+      }
       if (contactNote) {
         await createMessage(existing.id, user.id, contactNote);
         revalidateThread(existing.id, app.id);
@@ -220,6 +229,15 @@ export async function shareJobAction(input: {
     if (contactNote) {
       await createMessage(thread.id, user.id, contactNote);
     }
+    await createNotification({
+      userId: input.friendUserId,
+      actorId: user.id,
+      actorHandle: user.username,
+      type: "job_share",
+      title: `${user.username ? `@${user.username}` : "A friend"} shared ${app.company}`,
+      body: app.role,
+      href: `/friends/${thread.id}`,
+    }).catch(() => undefined);
     revalidateThread(thread.id, app.id);
     return { ok: true, data: { threadId: thread.id } };
   } catch (e) {
@@ -277,6 +295,7 @@ export async function saveSharedJobAction(
     );
     revalidatePath("/board");
     revalidatePath("/applications");
+    revalidatePath(`/applications/${app.id}`);
     revalidatePath("/friends");
     revalidatePath(`/friends/${threadId}`);
     return { ok: true, data: { id: app.id } };

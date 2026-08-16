@@ -6,6 +6,7 @@ import { DossierLink } from "@/components/dossier-link";
 import { dossierStatusStyle, dossierTitleStyle } from "@/lib/motion";
 import { deleteApplicationAction } from "@/lib/actions/applications";
 import { STATUS_COLORS } from "@/lib/constants";
+import type { ApplicationShare } from "@/lib/friends";
 import type { Application, Touchpoint } from "@/lib/types";
 import { cn, daysSince, isStale } from "@/lib/utils";
 import { useAppShell } from "@/components/app-shell-provider";
@@ -67,6 +68,8 @@ export function ApplicationDetail({
   apolloEnabled,
   aiEnabled,
   friends,
+  pods = [],
+  shares = [],
   initialTab = "overview",
 }: {
   application: Application;
@@ -74,6 +77,8 @@ export function ApplicationDetail({
   apolloEnabled: boolean;
   aiEnabled: boolean;
   friends: { userId: string; handle: string }[];
+  pods?: { id: string; name: string }[];
+  shares?: ApplicationShare[];
   initialTab?: Tab;
 }) {
   const router = useRouter();
@@ -151,15 +156,11 @@ export function ApplicationDetail({
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-start justify-end gap-2">
-          <ShareJob
-            applicationId={application.id}
-            friends={friends}
-            contactCount={groupTouchpointsByPerson(touchpoints).length}
-          />
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             type="button"
             variant="secondary"
+            className="whitespace-nowrap"
             onClick={() => openEditApplication(application)}
           >
             Edit
@@ -167,6 +168,7 @@ export function ApplicationDetail({
           <Button
             type="button"
             variant="danger"
+            className="whitespace-nowrap"
             disabled={pending}
             onClick={() => setConfirm({ kind: "application" })}
           >
@@ -187,6 +189,14 @@ export function ApplicationDetail({
       </p>
 
       {error ? <ErrorBanner message={error} /> : null}
+
+      <ShareJob
+        applicationId={application.id}
+        friends={friends}
+        pods={pods}
+        shares={shares}
+        contactCount={groupTouchpointsByPerson(touchpoints).length}
+      />
 
       <TabBar
         ariaLabel="Application sections"

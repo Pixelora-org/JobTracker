@@ -745,3 +745,276 @@ where t.contact_id is null
   and lower(t.company) = lower(c.company)
   and c.email is null;
 
+-- ---------------------------------------------------------------------------
+-- Notifications + pods. Additive; safe to re-run.
+-- Pods are 2–5 people. Each person keeps their own board; the pod shows
+-- everyone's status on a shared job list.
+-- ---------------------------------------------------------------------------
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  actor_id text,
+  actor_handle text,
+  type text not null check (type in ('job_share', 'pod_job')),
+  title text not null,
+  body text,
+  href text,
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists notifications_user_unread_idx
+  on public.notifications (user_id, created_at desc)
+  where read_at is null;
+
+create table if not exists public.pods (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_by text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.pod_members (
+  id uuid primary key default gen_random_uuid(),
+  pod_id uuid not null references public.pods (id) on delete cascade,
+  user_id text not null,
+  handle text,
+  status text not null default 'pending' check (status in ('pending', 'accepted')),
+  invited_by text,
+  created_at timestamptz not null default now(),
+  unique (pod_id, user_id)
+);
+
+create or replace function public.in_pod(p uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.pod_members m
+    where m.pod_id = p
+      and m.user_id = public.clerk_user_id()
+  );
+$$;
+
+create or replace function public.is_pod_member(p uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.pod_members m
+    where m.pod_id = p
+      and m.user_id = public.clerk_user_id()
+      and m.status = 'accepted'
+  );
+$$;
+
+revoke all on function public.in_pod(uuid) from public;
+revoke all on function public.is_pod_member(uuid) from public;
+grant execute on function public.in_pod(uuid) to authenticated;
+grant execute on function public.is_pod_member(uuid) to authenticated;
+
+create table if not exists public.pod_jobs (
+  id uuid primary key default gen_random_uuid(),
+  pod_id uuid not null references public.pods (id) on delete cascade,
+  added_by text not null,
+  company text not null,
+  role text not null,
+  job_url text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.pod_job_saves (
+  id uuid primary key default gen_random_uuid(),
+  pod_job_id uuid not null references public.pod_jobs (id) on delete cascade,
+  user_id text not null,
+  application_id uuid references public.applications (id) on delete set null,
+  status text not null default 'Wishlist' check (
+    status in (
+      'Wishlist', 'Applied', 'OA/Assessment', 'Phone Screen',
+      'Interview', 'Offer', 'Rejected', 'Withdrawn', 'Ghosted'
+    )
+  ),
+  updated_at timestamptz not null default now(),
+  unique (pod_job_id, user_id)
+);
+
+create table if not exists public.pod_messages (
+  id uuid primary key default gen_random_uuid(),
+  pod_job_id uuid not null references public.pod_jobs (id) on delete cascade,
+  user_id text not null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists pod_members_user_idx on public.pod_members (user_id);
+create index if not exists pod_jobs_pod_idx on public.pod_jobs (pod_id, created_at desc);
+create index if not exists pod_job_saves_app_idx on public.pod_job_saves (application_id);
+create index if not exists pod_messages_job_idx on public.pod_messages (pod_job_id, created_at);
+
+drop trigger if exists pod_job_saves_set_updated_at on public.pod_job_saves;
+create trigger pod_job_saves_set_updated_at
+  before update on public.pod_job_saves
+  for each row execute function public.set_updated_at();
+
+alter table public.notifications enable row level security;
+alter table public.pods enable row level security;
+alter table public.pod_members enable row level security;
+alter table public.pod_jobs enable row level security;
+alter table public.pod_job_saves enable row level security;
+alter table public.pod_messages enable row level security;
+
+drop policy if exists "Users read own notifications" on public.notifications;
+create policy "Users read own notifications"
+  on public.notifications for select
+  to authenticated
+  using ((select public.clerk_user_id()) = user_id);
+
+drop policy if exists "Users insert notifications as actor" on public.notifications;
+create policy "Users insert notifications as actor"
+  on public.notifications for insert
+  to authenticated
+  with check ((select public.clerk_user_id()) = actor_id);
+
+drop policy if exists "Users update own notifications" on public.notifications;
+create policy "Users update own notifications"
+  on public.notifications for update
+  to authenticated
+  using ((select public.clerk_user_id()) = user_id)
+  with check ((select public.clerk_user_id()) = user_id);
+
+drop policy if exists "Members read pods" on public.pods;
+create policy "Members read pods"
+  on public.pods for select
+  to authenticated
+  using (
+    (select public.clerk_user_id()) = created_by
+    or public.in_pod(id)
+  );
+
+drop policy if exists "Users insert pods" on public.pods;
+create policy "Users insert pods"
+  on public.pods for insert
+  to authenticated
+  with check ((select public.clerk_user_id()) = created_by);
+
+drop policy if exists "Creators update pods" on public.pods;
+create policy "Creators update pods"
+  on public.pods for update
+  to authenticated
+  using ((select public.clerk_user_id()) = created_by);
+
+drop policy if exists "Creators delete pods" on public.pods;
+create policy "Creators delete pods"
+  on public.pods for delete
+  to authenticated
+  using ((select public.clerk_user_id()) = created_by);
+
+drop policy if exists "Participants read pod members" on public.pod_members;
+create policy "Participants read pod members"
+  on public.pod_members for select
+  to authenticated
+  using (public.in_pod(pod_id));
+
+drop policy if exists "Members insert pod members" on public.pod_members;
+create policy "Members insert pod members"
+  on public.pod_members for insert
+  to authenticated
+  with check (
+    (select public.clerk_user_id()) = user_id
+    or (
+      (select public.clerk_user_id()) = invited_by
+      and public.is_pod_member(pod_id)
+    )
+  );
+
+drop policy if exists "Users update own pod membership" on public.pod_members;
+create policy "Users update own pod membership"
+  on public.pod_members for update
+  to authenticated
+  using ((select public.clerk_user_id()) = user_id)
+  with check ((select public.clerk_user_id()) = user_id);
+
+drop policy if exists "Users delete pod membership" on public.pod_members;
+create policy "Users delete pod membership"
+  on public.pod_members for delete
+  to authenticated
+  using (
+    (select public.clerk_user_id()) = user_id
+    or public.is_pod_member(pod_id)
+  );
+
+drop policy if exists "Members read pod jobs" on public.pod_jobs;
+create policy "Members read pod jobs"
+  on public.pod_jobs for select
+  to authenticated
+  using (public.is_pod_member(pod_id));
+
+drop policy if exists "Members insert pod jobs" on public.pod_jobs;
+create policy "Members insert pod jobs"
+  on public.pod_jobs for insert
+  to authenticated
+  with check (
+    (select public.clerk_user_id()) = added_by
+    and public.is_pod_member(pod_id)
+  );
+
+drop policy if exists "Members read pod job saves" on public.pod_job_saves;
+create policy "Members read pod job saves"
+  on public.pod_job_saves for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.pod_jobs j
+      where j.id = pod_job_id and public.is_pod_member(j.pod_id)
+    )
+  );
+
+drop policy if exists "Users insert own pod job saves" on public.pod_job_saves;
+create policy "Users insert own pod job saves"
+  on public.pod_job_saves for insert
+  to authenticated
+  with check ((select public.clerk_user_id()) = user_id);
+
+drop policy if exists "Users update own pod job saves" on public.pod_job_saves;
+create policy "Users update own pod job saves"
+  on public.pod_job_saves for update
+  to authenticated
+  using ((select public.clerk_user_id()) = user_id)
+  with check ((select public.clerk_user_id()) = user_id);
+
+drop policy if exists "Members read pod messages" on public.pod_messages;
+create policy "Members read pod messages"
+  on public.pod_messages for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.pod_jobs j
+      where j.id = pod_job_id and public.is_pod_member(j.pod_id)
+    )
+  );
+
+drop policy if exists "Members insert pod messages" on public.pod_messages;
+create policy "Members insert pod messages"
+  on public.pod_messages for insert
+  to authenticated
+  with check (
+    (select public.clerk_user_id()) = user_id
+    and exists (
+      select 1 from public.pod_jobs j
+      where j.id = pod_job_id and public.is_pod_member(j.pod_id)
+    )
+  );
+
+do $$
+begin
+  alter publication supabase_realtime add table public.pod_messages;
+exception
+  when duplicate_object then null;
+end $$;
+

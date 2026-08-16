@@ -98,6 +98,16 @@ export function FriendsIcon({ className }: { className?: string }) {
   );
 }
 
+export function PodsIcon({ className }: { className?: string }) {
+  return (
+    <Icon className={className}>
+      <circle cx="8" cy="8" r="2.6" />
+      <circle cx="16" cy="8" r="2.6" />
+      <circle cx="12" cy="16" r="2.6" />
+    </Icon>
+  );
+}
+
 export const NAV_ITEMS: NavItem[] = [
   { href: "/today", label: "Today", match: ["/today"], icon: TodayIcon },
   {

@@ -178,8 +178,8 @@ export function FriendsPanel({
         <MicroLabel>Friends</MicroLabel>
         {accepted.length === 0 ? (
           <p className="text-sm text-muted">
-            No friends yet. After they accept, you can share a job from its
-            application page.
+            No friends yet. After they accept, send them one job from its
+            application page, or invite them into a pod.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -208,10 +208,11 @@ export function FriendsPanel({
       </section>
 
       <section className="space-y-2">
-        <MicroLabel>Shared jobs</MicroLabel>
+        <MicroLabel>1:1 shares</MicroLabel>
         {threads.length === 0 ? (
           <p className="text-sm text-muted">
-            Open an application and use Share with to start a thread.
+            Open an application and use Send to a friend. There is no general
+            inbox — talk on the job thread.
           </p>
         ) : (
           <ul className="space-y-2">

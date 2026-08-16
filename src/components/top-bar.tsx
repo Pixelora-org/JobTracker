@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
+import { NotificationBell } from "@/components/notification-bell";
 import { useAppShell } from "@/components/app-shell-provider";
 import {
   FriendsIcon,
   NAV_ITEMS,
+  PodsIcon,
   ResumesIcon,
   isNavActive,
 } from "@/components/nav-config";
@@ -18,13 +20,13 @@ export function TopBar({
   name,
   username,
   followUpCount = 0,
-  friendInviteCount = 0,
+  bellCount = 0,
 }: {
   email?: string | null;
   name?: string | null;
   username?: string | null;
   followUpCount?: number;
-  friendInviteCount?: number;
+  bellCount?: number;
 }) {
   const pathname = usePathname();
   const { openCapture } = useAppShell();
@@ -67,19 +69,35 @@ export function TopBar({
           })}
         </nav>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2">
+          <NotificationBell unreadCount={bellCount} />
           <Link
             href="/friends"
-            className="relative inline-flex h-9 items-center rounded-lg px-2.5 text-sm text-muted hover:bg-background hover:text-text"
-            title="Friends"
+            aria-label="Friends"
+            aria-current={pathname.startsWith("/friends") ? "page" : undefined}
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm transition-colors",
+              pathname.startsWith("/friends")
+                ? "bg-accent-soft font-medium text-accent"
+                : "text-muted hover:bg-background hover:text-text"
+            )}
           >
-            <FriendsIcon className="h-4 w-4" />
-            <span className="sr-only">Friends</span>
-            {friendInviteCount > 0 ? (
-              <span className="absolute -right-0.5 -top-0.5 min-w-[15px] rounded-full bg-stale px-1 text-center font-mono text-[9px] leading-[15px] text-white">
-                {friendInviteCount}
-              </span>
-            ) : null}
+            <FriendsIcon className="h-4 w-4 lg:hidden" />
+            <span className="hidden lg:inline">Friends</span>
+          </Link>
+          <Link
+            href="/pods"
+            aria-label="Pods"
+            aria-current={pathname.startsWith("/pods") ? "page" : undefined}
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm transition-colors",
+              pathname.startsWith("/pods")
+                ? "bg-accent-soft font-medium text-accent"
+                : "text-muted hover:bg-background hover:text-text"
+            )}
+          >
+            <PodsIcon className="h-4 w-4 lg:hidden" />
+            <span className="hidden lg:inline">Pods</span>
           </Link>
           <Button type="button" onClick={openCapture} title="Quick add (⌘K)">
             Quick add
@@ -93,11 +111,6 @@ export function TopBar({
                 label="Resumes"
                 href="/resumes"
                 labelIcon={<ResumesIcon className="h-4 w-4" />}
-              />
-              <UserButton.Link
-                label="Friends"
-                href="/friends"
-                labelIcon={<FriendsIcon className="h-4 w-4" />}
               />
             </UserButton.MenuItems>
           </UserButton>
