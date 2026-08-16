@@ -109,7 +109,7 @@ export function AppShellProvider({
         label: "Due follow-ups",
         run: () => router.push("/contacts?tab=due"),
       },
-      { id: "plan", group: "Go to", label: "Plan", run: () => router.push("/strategy") },
+      { id: "plan", group: "Go to", label: "Strategy", run: () => router.push("/strategy") },
       {
         id: "resumes",
         group: "Go to",

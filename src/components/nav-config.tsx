@@ -116,6 +116,12 @@ export const NAV_ITEMS: NavItem[] = [
     match: ["/board", "/applications"],
     icon: BoardIcon,
   },
+  {
+    href: "/strategy",
+    label: "Strategy",
+    match: ["/strategy"],
+    icon: PlanIcon,
+  },
   { href: "/jobs", label: "Find", match: ["/jobs"], icon: FindIcon },
   {
     href: "/contacts",

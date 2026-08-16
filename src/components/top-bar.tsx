@@ -42,7 +42,7 @@ export function TopBar({
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-0.5 lg:flex">
           {NAV_ITEMS.map((item) => {
             const active = isNavActive(item, pathname);
             const badge = item.href === "/contacts" && followUpCount > 0;
@@ -52,7 +52,7 @@ export function TopBar({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors",
+                  "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors",
                   active
                     ? "bg-accent-soft font-medium text-accent"
                     : "text-muted hover:bg-background hover:text-text"

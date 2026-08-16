@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { NAV_ITEMS, isNavActive } from "@/components/nav-config";
 import { cn } from "@/lib/utils";
 
-/** Phone-sized tab bar. Four items is what fits without crowding. */
+/** Phone-sized tab bar. Five items is the ceiling before labels crowd. */
 export function MobileNav({ followUpCount = 0 }: { followUpCount?: number }) {
   const pathname = usePathname();
 
@@ -22,7 +22,7 @@ export function MobileNav({ followUpCount = 0 }: { followUpCount?: number }) {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors",
+                "relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] sm:text-[11px] transition-colors",
                 active ? "text-accent" : "text-muted"
               )}
             >
