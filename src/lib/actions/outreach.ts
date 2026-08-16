@@ -1,7 +1,11 @@
 "use server";
 
 import { isAiConfigured } from "@/lib/ai/model";
-import { draftOutreach, type OutreachDraft } from "@/lib/ai/outreach";
+import {
+  draftOutreach,
+  type OutreachDraft,
+  type OutreachTemplate,
+} from "@/lib/ai/outreach";
 import { generateSearchPlan } from "@/lib/ai/search-plan";
 import { getApplication, saveSearchPlan } from "@/lib/data/applications";
 import { getUser } from "@/lib/supabase/server";
@@ -106,6 +110,7 @@ export async function draftOutreachAction(input: {
   contactTitle?: string;
   about?: string;
   channel: "LinkedIn" | "Email";
+  template: OutreachTemplate;
 }): Promise<ActionResult<OutreachDraft>> {
   try {
     const user = await getUser();
@@ -132,6 +137,8 @@ export async function draftOutreachAction(input: {
       contactTitle: input.contactTitle,
       about: input.about,
       channel: input.channel,
+      template: input.template,
+      applicantName: user.name ?? user.username ?? "",
     });
 
     return { ok: true, data: draft };

@@ -23,7 +23,10 @@ Rules:
   the posting is described (LinkedIn, company site, referral, etc).
 - Classify track as Cybersecurity for security, appsec, SOC, GRC, or offensive
   security roles; Software Engineering for general engineering roles.
-- Interpret relative dates against the provided current date.`;
+- Interpret relative dates against the provided current date.
+- Application notes are a brief the user will read later and the outreach
+  model will use. Prefer concrete nouns (team names, tools, visa, salary band)
+  over adjectives. If the paste is thin, keep notes short rather than padding.`;
 
 type ExtractContext = {
   applications: Pick<Application, "id" | "company" | "role" | "status">[];

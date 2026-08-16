@@ -72,6 +72,17 @@ function toMessage(row: MessageRow): JobMessage {
   };
 }
 
+export async function countIncomingInvites(userId: string) {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("friendships")
+    .select("id", { count: "exact", head: true })
+    .eq("addressee_id", userId)
+    .eq("status", "pending");
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 export async function listFriendships() {
   const supabase = await createClient();
   const { data, error } = await supabase

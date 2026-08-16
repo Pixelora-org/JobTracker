@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { BoardViews, type BoardView } from "@/components/board-views";
 import { FunnelStrip } from "@/components/funnel-strip";
-import { TodayStrip } from "@/components/today-strip";
 import { EmptyState } from "@/components/ui";
 import { listActivitySince } from "@/lib/data/activity";
 import { listApplications } from "@/lib/data/applications";
@@ -66,22 +65,19 @@ export default async function DashboardPage({
         />
       ) : (
         <>
-          {progress ? (
-            <TodayStrip progress={progress} />
-          ) : (
-            <Link
-              href="/strategy"
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-accent/25 bg-accent-soft/40 px-4 py-3 transition-colors hover:bg-accent-soft/70"
-            >
-              <span className="text-sm text-text">
-                No targets set. Decide how much you are aiming for and the board
-                starts measuring itself against it.
-              </span>
-              <span className="font-mono text-[11px] text-accent">
-                Build a strategy ↗
-              </span>
-            </Link>
-          )}
+          <Link
+            href="/today"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface px-4 py-3 transition-colors hover:bg-background"
+          >
+            <span className="text-sm text-text">
+              {progress
+                ? "Today has the next three moves. This page is the pipeline."
+                : "Today has the next three moves. Set a volume when you want targets."}
+            </span>
+            <span className="font-mono text-[11px] text-accent">
+              {progress ? "Open today ↗" : "Open today ↗"}
+            </span>
+          </Link>
 
           {applications.length === 0 ? (
             <EmptyState

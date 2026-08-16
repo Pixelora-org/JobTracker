@@ -116,8 +116,8 @@ export default async function StrategyPage() {
             headline="Start with a plan"
             detail={
               grounded
-                ? "Decide the volume first. Your last two weeks of real activity get sent along, so the numbers come back tuned to you."
-                : "Decide the volume first, then log applications against it. Everything counts itself from what you already track."
+                ? "How much time you have, and how many applications and notes that buys. Today will turn it into three next moves."
+                : "How much time you have. Today will turn the volume into three next moves."
             }
             current="plan"
           />

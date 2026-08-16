@@ -7,7 +7,7 @@ export default function SignUpPage() {
         After Google or email, pick a username. Friends add you with that
         handle, not your email.
       </p>
-      <SignUp fallbackRedirectUrl="/board" signInUrl="/sign-in" />
+      <SignUp fallbackRedirectUrl="/today" signInUrl="/sign-in" />
     </div>
   );
 }

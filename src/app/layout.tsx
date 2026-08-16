@@ -53,8 +53,8 @@ export default function RootLayout({
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
           afterSignOutUrl="/"
-          signInFallbackRedirectUrl="/board"
-          signUpFallbackRedirectUrl="/board"
+          signInFallbackRedirectUrl="/today"
+          signUpFallbackRedirectUrl="/today"
           taskUrls={{
             "choose-organization": "/auth/choose-organization",
             "reset-password": "/auth/reset-password",

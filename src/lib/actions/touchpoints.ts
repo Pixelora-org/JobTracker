@@ -18,6 +18,7 @@ function revalidateTouchPaths(applicationId?: string | null) {
   revalidatePath("/follow-ups");
   if (applicationId) revalidatePath(`/applications/${applicationId}`);
   revalidatePath("/board");
+  revalidatePath("/today");
 }
 
 function message(e: unknown, fallback: string) {

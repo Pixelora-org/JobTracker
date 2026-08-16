@@ -35,6 +35,15 @@ function Icon({
   );
 }
 
+export function TodayIcon({ className }: { className?: string }) {
+  return (
+    <Icon className={className}>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M8 3v4M16 3v4M4 10h16" />
+    </Icon>
+  );
+}
+
 export function BoardIcon({ className }: { className?: string }) {
   return (
     <Icon className={className}>
@@ -90,6 +99,7 @@ export function FriendsIcon({ className }: { className?: string }) {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  { href: "/today", label: "Today", match: ["/today"], icon: TodayIcon },
   {
     href: "/board",
     label: "Board",
@@ -103,7 +113,6 @@ export const NAV_ITEMS: NavItem[] = [
     match: ["/contacts", "/follow-ups"],
     icon: OutreachIcon,
   },
-  { href: "/strategy", label: "Plan", match: ["/strategy"], icon: PlanIcon },
 ];
 
 export function isNavActive(item: NavItem, pathname: string) {

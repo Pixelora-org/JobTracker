@@ -116,6 +116,10 @@ export function ApplicationForm({
         onOffer?.();
       }
       onClose();
+      if (!isEdit && result.ok && result.data && "id" in result.data) {
+        router.push(`/applications/${result.data.id}?tab=outreach`);
+        return;
+      }
       router.refresh();
     });
   }

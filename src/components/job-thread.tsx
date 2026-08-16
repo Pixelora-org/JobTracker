@@ -173,7 +173,8 @@ export function JobThreadChat({
           {messages.length === 0 ? (
             <p className="text-sm text-muted">
               No messages yet. Company, role, and the job URL are visible to
-              both of you. Private notes stay off this thread.
+              both of you. People they already reached appear only if they
+              opted in.
             </p>
           ) : (
             messages.map((msg) => {

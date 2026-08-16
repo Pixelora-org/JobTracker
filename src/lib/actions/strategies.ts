@@ -77,6 +77,7 @@ export async function createStrategyAction(
     const strategy = await createStrategy(input, user.id);
     revalidatePath("/strategy");
     revalidatePath("/board");
+    revalidatePath("/today");
     return { ok: true, data: { id: strategy.id } };
   } catch (e) {
     return { ok: false, error: message(e, "Could not save the strategy") };
@@ -93,6 +94,7 @@ export async function archiveStrategyAction(
     await archiveStrategy(id);
     revalidatePath("/strategy");
     revalidatePath("/board");
+    revalidatePath("/today");
     return { ok: true, data: undefined };
   } catch (e) {
     return { ok: false, error: message(e, "Could not archive the strategy") };

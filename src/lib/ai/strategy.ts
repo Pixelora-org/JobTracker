@@ -71,6 +71,11 @@ Rules for targets:
   include some outreach unless the applicant explicitly rules it out.
 
 Rules for the writing:
+- "philosophy" is one plain sentence a busy student understands.
+- "rationale" is two or three sentences in everyday language. Cite the time
+  budget or their real averages. No metric keys, no "phase 1", no coaching
+  slogans. Example: "Two applications each weekday and three LinkedIn notes a
+  week fit about two hours. Start there so the emails stay specific."
 - "risk" names the specific thing that will break first, such as email quality
   dropping at high volume, or the plan assuming weekends stay free.`;
 

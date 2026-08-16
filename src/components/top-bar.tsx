@@ -18,11 +18,13 @@ export function TopBar({
   name,
   username,
   followUpCount = 0,
+  friendInviteCount = 0,
 }: {
   email?: string | null;
   name?: string | null;
   username?: string | null;
   followUpCount?: number;
+  friendInviteCount?: number;
 }) {
   const pathname = usePathname();
   const { openCapture } = useAppShell();
@@ -31,7 +33,7 @@ export function TopBar({
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-3 px-4 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center">
-          <Link href="/board" className="shrink-0">
+          <Link href="/today" className="shrink-0">
             <span className="font-mono text-sm font-semibold tracking-tight text-text">
               pipeline
             </span>
@@ -66,6 +68,19 @@ export function TopBar({
         </nav>
 
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <Link
+            href="/friends"
+            className="relative inline-flex h-9 items-center rounded-lg px-2.5 text-sm text-muted hover:bg-background hover:text-text"
+            title="Friends"
+          >
+            <FriendsIcon className="h-4 w-4" />
+            <span className="sr-only">Friends</span>
+            {friendInviteCount > 0 ? (
+              <span className="absolute -right-0.5 -top-0.5 min-w-[15px] rounded-full bg-stale px-1 text-center font-mono text-[9px] leading-[15px] text-white">
+                {friendInviteCount}
+              </span>
+            ) : null}
+          </Link>
           <Button type="button" onClick={openCapture} title="Quick add (⌘K)">
             Quick add
           </Button>

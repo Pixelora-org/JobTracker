@@ -68,7 +68,7 @@ export function StrategyTracker({
       <section className="rounded-lg border border-border bg-surface px-4 py-3">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <div>
-            <MicroLabel>Active strategy</MicroLabel>
+            <MicroLabel>Volume</MicroLabel>
             <h2 className="mt-1 text-base font-medium text-text">
               {strategy.name}
             </h2>

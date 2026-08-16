@@ -14,6 +14,8 @@ import {
   listThreads,
   updateFriendshipStatus,
 } from "@/lib/data/friends";
+import { listTouchpoints } from "@/lib/data/touchpoints";
+import { groupTouchpointsByPerson } from "@/lib/people";
 import { getUser } from "@/lib/supabase/server";
 
 import type { ActionResult } from "@/lib/actions/result";
@@ -22,8 +24,13 @@ function message(e: unknown, fallback: string) {
   return e instanceof Error ? e.message : fallback;
 }
 
-function revalidateThread(threadId?: string, applicationId?: string | null) {
+function revalidateFriendsShell() {
   revalidatePath("/friends");
+  revalidatePath("/", "layout");
+}
+
+function revalidateThread(threadId?: string, applicationId?: string | null) {
+  revalidateFriendsShell();
   if (threadId) revalidatePath(`/friends/${threadId}`);
   if (applicationId) revalidatePath(`/applications/${applicationId}`);
 }
@@ -106,7 +113,7 @@ export async function inviteFriendAction(
       requesterUsername: user.username,
       addresseeUsername: peerUsername,
     });
-    revalidatePath("/friends");
+    revalidateFriendsShell();
     return { ok: true, data: undefined };
   } catch (e) {
     return { ok: false, error: message(e, "Could not send invite") };
@@ -125,7 +132,7 @@ export async function acceptFriendAction(
       return { ok: false, error: "Only the person you invited can accept." };
     }
     await updateFriendshipStatus(id, "accepted");
-    revalidatePath("/friends");
+    revalidateFriendsShell();
     return { ok: true, data: undefined };
   } catch (e) {
     return { ok: false, error: message(e, "Could not accept invite") };
@@ -147,16 +154,30 @@ export async function ignoreFriendAction(
       return { ok: false, error: "Invite not found." };
     }
     await deleteFriendship(id);
-    revalidatePath("/friends");
+    revalidateFriendsShell();
     return { ok: true, data: undefined };
   } catch (e) {
     return { ok: false, error: message(e, "Could not update invite") };
   }
 }
 
+function formatSharedContacts(applicationId: string) {
+  return listTouchpoints({ applicationId }).then((touchpoints) => {
+    const people = groupTouchpointsByPerson(touchpoints);
+    if (people.length === 0) return null;
+    const lines = people.map((p) => {
+      const who = [p.name, p.title, p.company].filter(Boolean).join(" · ");
+      const reach = [p.email, p.linkedinUrl].filter(Boolean).join(" · ");
+      return reach ? `• ${who}\n  ${reach}` : `• ${who}`;
+    });
+    return `People I already reached:\n\n${lines.join("\n")}`;
+  });
+}
+
 export async function shareJobAction(input: {
   applicationId: string;
   friendUserId: string;
+  includeContacts?: boolean;
 }): Promise<ActionResult<{ threadId: string }>> {
   try {
     const user = await getUser();
@@ -176,7 +197,15 @@ export async function shareJobAction(input: {
         t.ownerId === user.id &&
         t.peerId === input.friendUserId
     );
+    const contactNote = input.includeContacts
+      ? await formatSharedContacts(app.id)
+      : null;
+
     if (existing) {
+      if (contactNote) {
+        await createMessage(existing.id, user.id, contactNote);
+        revalidateThread(existing.id, app.id);
+      }
       return { ok: true, data: { threadId: existing.id } };
     }
 
@@ -188,6 +217,9 @@ export async function shareJobAction(input: {
       role: app.role,
       jobUrl: app.jobUrl,
     });
+    if (contactNote) {
+      await createMessage(thread.id, user.id, contactNote);
+    }
     revalidateThread(thread.id, app.id);
     return { ok: true, data: { threadId: thread.id } };
   } catch (e) {

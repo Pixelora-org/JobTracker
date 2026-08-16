@@ -88,6 +88,7 @@ export function AppShellProvider({
         label: "Add application manually",
         run: () => openCreateApplication(),
       },
+      { id: "today", group: "Go to", label: "Today", run: () => router.push("/today") },
       { id: "board", group: "Go to", label: "Board", run: () => router.push("/board") },
       {
         id: "table",

@@ -47,7 +47,7 @@ export const captureSchema = z.object({
         .string()
         .nullable()
         .describe(
-          "One or two lines worth remembering: team, stack, salary, referral path. Not the whole posting."
+          "A short brief, 4-6 lines max, not the posting. Cover what is stated: team/org, stack or tools, seniority, location or visa, compensation if given, and one specific hook for outreach. No filler, no 'exciting opportunity'."
         ),
     })
     .nullable(),

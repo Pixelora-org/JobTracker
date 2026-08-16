@@ -73,10 +73,10 @@ export function LandingPage() {
           <div className="flex items-center gap-2">
             <Show when="signed-in">
               <Link
-                href="/board"
+                href="/today"
                 className="inline-flex h-9 items-center rounded-md bg-accent px-3.5 text-sm font-medium text-white hover:bg-[#2945c9]"
               >
-                Open board
+                Open today
               </Link>
             </Show>
             <Show when="signed-out">
@@ -121,10 +121,10 @@ export function LandingPage() {
             </Show>
             <Show when="signed-in">
               <Link
-                href="/board"
+                href="/today"
                 className="inline-flex h-11 items-center rounded-md bg-accent px-5 text-sm font-medium text-white hover:bg-[#2945c9]"
               >
-                Go to your board
+                Go to today
               </Link>
             </Show>
             <span className="font-mono text-[11px] text-muted">

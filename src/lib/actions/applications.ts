@@ -13,6 +13,7 @@ import type { ActionResult } from "@/lib/actions/result";
 
 function revalidateAppPaths(id?: string) {
   revalidatePath("/board");
+  revalidatePath("/today");
   revalidatePath("/applications");
   revalidatePath("/resumes");
   if (id) revalidatePath(`/applications/${id}`);

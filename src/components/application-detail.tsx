@@ -9,6 +9,7 @@ import { STATUS_COLORS } from "@/lib/constants";
 import type { Application, Touchpoint } from "@/lib/types";
 import { cn, daysSince, isStale } from "@/lib/utils";
 import { useAppShell } from "@/components/app-shell-provider";
+import { groupTouchpointsByPerson } from "@/lib/people";
 import { OutreachPanel } from "@/components/outreach-panel";
 import { ShareJob } from "@/components/share-job";
 import { TouchpointForm } from "@/components/touchpoint-form";
@@ -151,7 +152,11 @@ export function ApplicationDetail({
           </div>
         </div>
         <div className="flex flex-wrap items-start justify-end gap-2">
-          <ShareJob applicationId={application.id} friends={friends} />
+          <ShareJob
+            applicationId={application.id}
+            friends={friends}
+            contactCount={groupTouchpointsByPerson(touchpoints).length}
+          />
           <Button
             type="button"
             variant="secondary"

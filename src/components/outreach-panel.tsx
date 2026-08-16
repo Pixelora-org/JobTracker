@@ -9,7 +9,12 @@ import {
   searchPlanAction,
 } from "@/lib/actions/outreach";
 import { createTouchpointAction } from "@/lib/actions/touchpoints";
-import type { OutreachDraft } from "@/lib/ai/outreach";
+import {
+  OUTREACH_TEMPLATE_LABELS,
+  OUTREACH_TEMPLATES,
+  type OutreachDraft,
+  type OutreachTemplate,
+} from "@/lib/ai/outreach";
 import type { ContactSearch, OutreachContact } from "@/lib/outreach/apollo";
 import { DEFAULT_FOLLOW_UP_DAYS } from "@/lib/constants";
 import { addDaysInput, dateInputToIso, todayInput } from "@/lib/dates";
@@ -35,6 +40,15 @@ const SCHOOL_KEY = "pipeline:school";
 const ABOUT_KEY = "pipeline:about";
 
 type Channel = "LinkedIn" | "Email";
+
+function guessTemplate(title: string): OutreachTemplate {
+  const t = title.toLowerCase();
+  if (/(recruit|talent|sourcer|university|campus|early career)/.test(t)) {
+    return "recruiter";
+  }
+  if (/(alumni|alum)/.test(t)) return "alum";
+  return "teammate";
+}
 
 function CopyButton({
   text,
@@ -193,8 +207,8 @@ export function OutreachPanel({
   );
   const [school, setSchool] = useStoredText(SCHOOL_KEY);
   const [about, setAbout] = useStoredText(ABOUT_KEY);
-  const [showAbout, setShowAbout] = useState(false);
   const [channel, setChannel] = useState<Channel>("Email");
+  const [template, setTemplate] = useState<OutreachTemplate>("recruiter");
   const [result, setResult] = useState<ContactSearch | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [revealingId, setRevealingId] = useState<string | null>(null);
@@ -301,6 +315,7 @@ export function OutreachPanel({
     setContactTitle(contact.title ?? "");
     // Cleared when unrevealed, so a previous person's address can't ride along.
     setContactEmail(contact.email ?? "");
+    setTemplate(guessTemplate(contact.title ?? ""));
     setDraft(null);
     setLogged(false);
   }
@@ -315,6 +330,7 @@ export function OutreachPanel({
         contactTitle: contactTitle.trim() || undefined,
         about,
         channel,
+        template,
       });
       if (!res.ok) {
         setError(res.error);
@@ -597,21 +613,39 @@ export function OutreachPanel({
         </div>
 
         <div className="space-y-2">
-          <button
-            type="button"
-            onClick={() => setShowAbout((v) => !v)}
-            className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted hover:text-text"
-          >
-            {showAbout ? "− " : "+ "}About you (used in every draft)
-          </button>
-          {showAbout ? (
-            <Textarea
-              value={about}
-              placeholder="CS senior at Northeastern, security co-op at Acme, built a SIEM detection pipeline in Python…"
-              onChange={(e) => setAbout(e.target.value)}
-            />
-          ) : null}
+          <MicroLabel>Who they are to you</MicroLabel>
+          <div className="flex flex-wrap gap-1.5">
+            {OUTREACH_TEMPLATES.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTemplate(id)}
+                className={cn(
+                  "rounded-md border px-2.5 py-1 font-mono text-[11px] transition-colors",
+                  template === id
+                    ? "border-accent bg-accent-soft text-accent"
+                    : "border-border text-muted hover:text-text"
+                )}
+              >
+                {OUTREACH_TEMPLATE_LABELS[id]}
+              </button>
+            ))}
+          </div>
         </div>
+
+        <label className="flex flex-col gap-1.5">
+          <MicroLabel>About you (used in every draft)</MicroLabel>
+          <Textarea
+            value={about}
+            placeholder="CS senior at Northeastern, security co-op at Acme, built a SIEM detection pipeline in Python…"
+            onChange={(e) => setAbout(e.target.value)}
+          />
+          {!about.trim() ? (
+            <p className="text-xs text-muted">
+              Two or three proof points keep the draft from going generic.
+            </p>
+          ) : null}
+        </label>
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -663,7 +697,19 @@ export function OutreachPanel({
                   <MicroLabel>
                     Connection note · {draft.connectionNote.length}/300
                   </MicroLabel>
-                  <CopyButton text={draft.connectionNote} />
+                  <div className="flex gap-1.5">
+                    <CopyButton text={draft.connectionNote} />
+                    {selected?.linkedinUrl ? (
+                      <a
+                        href={selected.linkedinUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-8 items-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text hover:bg-background"
+                      >
+                        Open profile
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
                 <p className="mt-2 whitespace-pre-wrap text-sm text-text">
                   {draft.connectionNote}

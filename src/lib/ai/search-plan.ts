@@ -5,7 +5,11 @@ import type { Application, SearchPlan } from "@/lib/types";
 
 const personaSchema = z.object({
   label: z.string().describe('Short plural label, e.g. "University recruiters".'),
-  why: z.string().describe("One short line on why this person is worth contacting."),
+  why: z
+    .string()
+    .describe(
+      "One specific sentence for THIS role at THIS company. Name the function, program, or decision they own. Not 'they can refer you' or 'they work in talent'."
+    ),
   titles: z
     .array(z.string())
     .describe(
@@ -59,6 +63,8 @@ Choosing personas (4 to 6, best response rate first):
   new grad, or campus role is filled by university recruiters, campus
   recruiters, and early careers talent partners. A senior role is filled by
   technical recruiters and the engineering manager who owns the req.
+- "why" must be specific to this posting. Bad: "Good person to contact."
+  Good: "Owns the university recruiting pipeline for security interns."
 - Include at least one recruiter persona and at least one persona on the team
   itself, since teammates give referrals that recruiters cannot.
 - Use the real job titles that exist at this kind of employer. Large tech

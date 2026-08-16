@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { claimLegacyData, getUser } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { countIncomingInvites } from "@/lib/data/friends";
 import { countDueFollowUps } from "@/lib/data/touchpoints";
 import { listResumes } from "@/lib/data/resumes";
 import { AppShellProvider } from "@/components/app-shell-provider";
@@ -37,8 +38,9 @@ export default async function AppLayout({
     );
   }
 
-  const [followUpCount, resumes] = await Promise.all([
+  const [followUpCount, friendInviteCount, resumes] = await Promise.all([
     countDueFollowUps().catch(() => 0),
+    countIncomingInvites(user.id).catch(() => 0),
     listResumes().catch(() => []),
   ]);
 
@@ -49,6 +51,7 @@ export default async function AppLayout({
         name={user.name}
         username={user.username}
         followUpCount={followUpCount}
+        friendInviteCount={friendInviteCount}
       />
       <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 pb-24 sm:px-6 lg:pb-5">
         {children}

@@ -17,13 +17,13 @@ export default function ClerkAuthCatchAll() {
   const path = usePathname();
 
   if (path.includes("choose-organization")) {
-    return <TaskChooseOrganization redirectUrlComplete="/board" />;
+    return <TaskChooseOrganization redirectUrlComplete="/today" />;
   }
   if (path.includes("reset-password")) {
-    return <TaskResetPassword redirectUrlComplete="/board" />;
+    return <TaskResetPassword redirectUrlComplete="/today" />;
   }
   if (path.includes("setup-mfa")) {
-    return <TaskSetupMFA redirectUrlComplete="/board" />;
+    return <TaskSetupMFA redirectUrlComplete="/today" />;
   }
   if (path.includes("sign-up") || path.includes("setup-account")) {
     return (
@@ -32,10 +32,10 @@ export default function ClerkAuthCatchAll() {
           After Google or email, pick a username. Friends add you with that
           handle, not your email.
         </p>
-        <SignUp fallbackRedirectUrl="/board" signInUrl="/sign-in" />
+        <SignUp fallbackRedirectUrl="/today" signInUrl="/sign-in" />
       </div>
     );
   }
 
-  return <SignIn fallbackRedirectUrl="/board" signUpUrl="/sign-up" />;
+  return <SignIn fallbackRedirectUrl="/today" signUpUrl="/sign-up" />;
 }

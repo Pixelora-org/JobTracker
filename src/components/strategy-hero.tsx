@@ -83,7 +83,7 @@ export function StrategyHero({
           return (
             <Link
               key={step.key}
-              href={step.key === "plan" ? "/strategy" : "/board"}
+              href={step.key === "plan" ? "/strategy" : "/today"}
               className={classes}
             >
               {inner}
