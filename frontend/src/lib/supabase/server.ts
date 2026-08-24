@@ -9,7 +9,8 @@ export async function createClient() {
     );
   }
 
-  const token = await auth().then((session) => session.getToken());
+  const { getToken } = await auth();
+  const token = await getToken();
 
   return createSupabaseClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
