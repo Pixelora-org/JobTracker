@@ -1,0 +1,20 @@
+# .github/workflows/gateway-ci.yml
+name: Gateway CI
+on:
+  pull_request:
+    branches: [develop, main]
+    paths: ['gateway/**']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+      - run: mvn -B verify
