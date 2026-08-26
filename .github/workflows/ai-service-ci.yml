@@ -1,0 +1,20 @@
+# .github/workflows/ai-service-ci.yml
+name: AI Service CI
+on:
+  pull_request:
+    branches: [develop, main]
+    paths: ['ai-service/**']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+      - run: mvn -B verify
