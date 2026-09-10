@@ -2,7 +2,7 @@
 name: Gateway CI
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [production, pre-production]
     paths: ['gateway/**']
 jobs:
   build:
