@@ -2,7 +2,7 @@
 name: Core Service CI
 on:
   pull_request:
-    branches: [production, pre-production]
+    branches: [develop, main]
     paths: ['core-service/**']
 jobs:
   build:

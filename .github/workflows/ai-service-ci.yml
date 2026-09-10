@@ -2,7 +2,7 @@
 name: AI Service CI
 on:
   pull_request:
-    branches: [production, pre-production]
+    branches: [develop, main]
     paths: ['ai-service/**']
 jobs:
   build:
