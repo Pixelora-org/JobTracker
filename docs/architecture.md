@@ -85,7 +85,7 @@ Pipeline is migrating from a pure Next.js + Supabase architecture to a hybrid ar
 
 **Deliverables:**
 - ✅ Spring Boot 3.4 + Java 21 project in `backend/`
-- ✅ Package structure: `gateway`, `core`, `ai`
+- ✅ Package structure: `gateway`, `core` (no AI in Java)
 - ✅ Health endpoint (`/api/v1/health`, `/actuator/health`)
 - ✅ Applications CRUD API (`/api/v1/applications`)
   - List (with optional status filter)
@@ -154,42 +154,73 @@ Each domain follows the same pattern:
 - Realtime subscriptions (used for pods/messages) stay on Supabase
 - Clerk auth frontend integration unchanged
 
-### Phase 4: Service Split (LONG-TERM)
+### Phase 4: AI Service Migration (IN PROGRESS)
 
-**Goal:** Split the monolithic backend into three deployable services.
+**Goal:** Migrate AI functionality from frontend TypeScript to dedicated Python service.
+
+**Status:** `ai-service/` Python FastAPI service scaffolded and ready for migration.
+
+**Structure:**
+
+```
+ai-service/           (Python FastAPI - IN PROGRESS)
+  ├── main.py                   # FastAPI app, health endpoints
+  ├── requirements.txt          # Python dependencies
+  ├── Dockerfile               # Railway deployment
+  ├── test_main.py             # Tests
+  └── README.md                # Migration plan
+```
+
+**Current AI Implementation:**
+- Location: `frontend/src/lib/ai/*.ts` (TypeScript)
+- Stack: Vercel AI SDK + Google Gemini
+- Features: outreach drafts, extraction, job search, strategy generation
+
+**Migration Strategy:**
+1. ✅ Scaffold Python service with health endpoints
+2. Implement first endpoint (outreach) behind feature flag
+3. Test and roll out gradually
+4. Migrate remaining endpoints one by one
+5. Remove frontend AI code when all migrated
+
+**Tech Stack:**
+- Python 3.12 + FastAPI
+- Google Gemini API (`google-generativeai`)
+- Pydantic for structured output
+- Clerk JWT validation (same as backend)
+
+See `ai-service/README.md` for detailed migration plan.
+
+### Phase 5: Service Split (LONG-TERM)
+
+**Goal:** Split the monolithic Java backend into separate gateway and core services.
 
 **Structure:**
 
 ```
 backend/              (current monolith, becomes deprecated)
-gateway/              (new repo/service)
+gateway/              (new repo/service - Java)
   ├── API routing
   ├── JWT validation
   ├── Rate limiting
   └── CORS
-core-service/         (new repo/service)
+core-service/         (new repo/service - Java)
   ├── Applications
   ├── Touchpoints
   ├── Contacts
   ├── Strategies
   └── Database access
-ai-service/           (new repo/service)
-  ├── LLM integration
-  ├── Resume parsing
-  ├── Job matching
-  └── Outreach suggestions
 ```
 
 **When to Split:**
 - Team grows beyond 3-4 backend engineers
-- AI service needs different scaling/resources
 - Gateway needs independent deployment cadence
 - Before: Validate that the split is worth the operational overhead
 
 **Tech Stack (Future):**
 - Service mesh: Istio or similar (TBD)
 - API gateway: Kong or Ambassador (TBD)
-- Inter-service communication: REST or gRPC (TBD)
+- Inter-service communication: REST (internal)
 
 ## Data Flow
 
@@ -206,11 +237,11 @@ User ──▶ Next.js ──▶ Supabase
 User ──▶ Next.js ──▶ Backend API ──▶ Supabase
 ```
 
-### After Phase 3
+### After Phase 4 (AI Service)
 
 ```
 User ──▶ Next.js ──▶ Backend API ──▶ Supabase
-                                  └──▶ AI Service (internal)
+              └──────▶ AI Service (Python, separate)
 ```
 
 ## Authentication Flow
@@ -443,6 +474,21 @@ LOG_LEVEL=INFO
 - [ ] Migrate resumes domain
 - [ ] Add integration tests
 - [ ] Set up monitoring/alerting
+
+### Phase 4 (AI Service Migration) 🚧
+- [x] Scaffold Python FastAPI service in `ai-service/`
+- [x] Health endpoints
+- [x] Dockerfile for Railway
+- [x] Basic tests
+- [x] CI workflow
+- [x] Remove Java `io.pipeline.ai` package
+- [ ] Implement outreach endpoint in Python
+- [ ] Add Clerk JWT validation
+- [ ] Feature flag in frontend
+- [ ] Deploy to Railway
+- [ ] Test end-to-end
+- [ ] Migrate remaining endpoints (extract, strategy, search-plan, job-search)
+- [ ] Remove frontend AI code when stable
 
 ## References
 
