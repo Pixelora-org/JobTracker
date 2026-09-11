@@ -9,6 +9,13 @@ import type {
   WorkMode,
 } from "@/lib/types";
 import { emptyToUndefined } from "@/lib/utils";
+import {
+  apiListApplications,
+  apiGetApplication,
+  apiCreateApplication,
+  apiUpdateApplication,
+  apiDeleteApplication,
+} from "@/lib/api/applications";
 
 type ApplicationRow = {
   id: string;
@@ -86,66 +93,38 @@ export async function listApplications(opts?: {
   track?: string;
   source?: string;
 }) {
-  const supabase = await createClient();
-  let query = supabase
-    .from("applications")
-    .select(APPLICATION_COLUMNS)
-    .order("updated_at", { ascending: false })
-    .limit(500);
-
-  if (opts?.status) query = query.eq("status", opts.status);
-  if (opts?.track) query = query.eq("track", opts.track);
-  if (opts?.source) query = query.eq("source", opts.source);
-  if (opts?.search?.trim()) {
-    const term = `%${opts.search.trim()}%`;
-    query = query.or(`company.ilike.${term},role.ilike.${term}`);
-  }
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  return (data as ApplicationRow[]).map(toApplication);
+  return apiListApplications(opts);
 }
 
 /** Null means no such row. Anything else (schema drift, network) still throws. */
 export async function getApplication(id: string) {
+  const application = await apiGetApplication(id);
+  if (!application) return null;
+
+  // Merge in searchPlan from Supabase if it exists
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("applications")
-    .select(APPLICATION_DETAIL_COLUMNS)
+    .select("search_plan")
     .eq("id", id)
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
-  return data ? toApplication(data as ApplicationRow) : null;
+  if (data?.search_plan) {
+    application.searchPlan = data.search_plan;
+  }
+
+  return application;
 }
 
 export async function createApplication(input: ApplicationInput, userId: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("applications")
-    .insert({ ...toRow(input), user_id: userId })
-    .select(APPLICATION_COLUMNS)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return toApplication(data as ApplicationRow);
+  return apiCreateApplication(input);
 }
 
 export async function updateApplication(
   id: string,
   input: Partial<ApplicationInput>
 ) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("applications")
-    .update(toRow(input))
-    .eq("id", id)
-    .select(APPLICATION_COLUMNS)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return toApplication(data as ApplicationRow);
+  return apiUpdateApplication(id, input);
 }
 
 export async function saveSearchPlan(id: string, plan: SearchPlan) {
@@ -159,7 +138,5 @@ export async function saveSearchPlan(id: string, plan: SearchPlan) {
 }
 
 export async function deleteApplication(id: string) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("applications").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  await apiDeleteApplication(id);
 }
