@@ -9,7 +9,7 @@ import java.util.UUID;
  * Represents a job application tracked by a user.
  */
 @Entity
-@Table(name = "applications")
+@Table(name = "applications", schema = "public")
 public class Application {
 
     @Id

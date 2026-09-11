@@ -16,6 +16,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        # Explicitly set default schema for Supabase/Postgres compatibility
+        # This ensures queries use "public.applications" when schema is not specified
+        default_schema: ${HIBERNATE_DEFAULT_SCHEMA:public}
 
   flyway:
     enabled: true
@@ -29,8 +32,10 @@ clerk:
   issuer: ${CLERK_ISSUER:https://clerk.pipeline.example.com}
 
 # CORS configuration
+# Supports origin patterns for Vercel preview URLs (wildcards allowed)
+# Example: https://jobtracker-*-abishekvaidyas-projects.vercel.app
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,https://pipeline.vercel.app}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,https://jobtracker-kohl-mu.vercel.app,https://jobtracker-*-abishekvaidyas-projects.vercel.app}
 
 # Actuator endpoints
 management:

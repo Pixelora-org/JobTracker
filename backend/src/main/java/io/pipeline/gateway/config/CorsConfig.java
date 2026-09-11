@@ -23,9 +23,11 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Parse comma-separated origins
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        configuration.setAllowedOrigins(origins);
+        // Parse comma-separated origin patterns
+        // Using setAllowedOriginPatterns instead of setAllowedOrigins to support
+        // Vercel preview URLs like https://jobtracker-*-abishekvaidyas-projects.vercel.app
+        List<String> originPatterns = Arrays.asList(allowedOrigins.split(","));
+        configuration.setAllowedOriginPatterns(originPatterns);
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
