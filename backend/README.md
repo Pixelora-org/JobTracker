@@ -6,7 +6,8 @@ Spring Boot 3.4 backend service for Pipeline job tracker. This single applicatio
 
 - **Gateway** (`io.pipeline.gateway`): HTTP API layer, REST controllers, security, CORS
 - **Core** (`io.pipeline.core`): Domain logic, services, repositories for business entities
-- **AI** (`io.pipeline.ai`): Placeholder for future LLM integration
+
+**⚠️ AI functionality belongs in the separate `ai-service/` Python service, not here.**
 
 See [docs/architecture.md](../docs/architecture.md) for the full migration strategy.
 
@@ -201,16 +202,18 @@ The Supabase schema uses PostgreSQL RLS policies to enforce user isolation. The 
 
 ### Future Migration Path
 
-This single application is organized into packages (gateway/core/ai) that mirror the intended service split:
+This backend is organized into packages (gateway/core) for the intended service split.
 
-1. **Phase 1** (current): Single Spring Boot app, all packages in one JAR
-2. **Phase 2**: Convert to Maven multi-module project (3 modules, still one deployable)
-3. **Phase 3**: Split into separate services:
+**AI Service**: Real LLM/AI functionality lives in the separate `ai-service/` Python microservice (see `ai-service/README.md`). This backend will never contain AI logic.
+
+Future service split:
+1. **Phase 1** (current): Single Spring Boot app with gateway + core
+2. **Phase 2**: AI service migrated from frontend to `ai-service/` (Python)
+3. **Phase 3**: Split backend into separate services:
    - `gateway-service`: API gateway, auth, routing
    - `core-service`: Business logic, database access
-   - `ai-service`: LLM integration, AI features
 
-The `gateway/`, `core-service/`, `ai-service/` directories at the monorepo root are reserved for this future split.
+The `gateway/` and `core-service/` directories at the monorepo root are reserved for this future split.
 
 ## Troubleshooting
 
@@ -244,6 +247,6 @@ When adding new features:
 
 1. Place HTTP/API code in `gateway` package
 2. Place business logic in `core` package
-3. Place AI/LLM code in `ai` package
+3. **Never place AI/LLM code here** - use `ai-service/` Python service
 4. Add tests for new endpoints/services
 5. Update this README if environment variables change
