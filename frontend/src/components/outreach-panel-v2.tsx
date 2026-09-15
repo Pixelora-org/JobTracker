@@ -341,6 +341,7 @@ export function OutreachPanelV2({
       title: selected.title,
       company: application.company,
       linkedinUrl: selected.linkedinUrl,
+      school: school.trim() || null,
     };
 
     startDraft(async () => {
