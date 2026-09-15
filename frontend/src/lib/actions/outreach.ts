@@ -106,6 +106,14 @@ export async function revealContactAction(
 
 export async function draftOutreachAction(input: {
   applicationId: string;
+  contactProfile?: {
+    name: string;
+    title?: string | null;
+    company?: string | null;
+    linkedinUrl?: string | null;
+    headline?: string | null;
+    school?: string | null;
+  } | null;
   contactName?: string;
   contactTitle?: string;
   about?: string;
@@ -133,6 +141,7 @@ export async function draftOutreachAction(input: {
 
     const draft = await draftOutreach({
       application,
+      contactProfile: input.contactProfile,
       contactName: input.contactName,
       contactTitle: input.contactTitle,
       about: input.about,

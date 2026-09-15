@@ -11,7 +11,7 @@ import type { Application, Touchpoint } from "@/lib/types";
 import { cn, daysSince, isStale } from "@/lib/utils";
 import { useAppShell } from "@/components/app-shell-provider";
 import { groupTouchpointsByPerson } from "@/lib/people";
-import { OutreachPanel } from "@/components/outreach-panel";
+import { OutreachPanelV2 } from "@/components/outreach-panel-v2";
 import { ShareJob } from "@/components/share-job";
 import { TouchpointForm } from "@/components/touchpoint-form";
 import { TouchpointTimeline } from "@/components/touchpoint-timeline";
@@ -283,7 +283,7 @@ export function ApplicationDetail({
 
       {tab === "outreach" ? (
         <div className="space-y-5">
-          <OutreachPanel
+          <OutreachPanelV2
             application={application}
             apolloEnabled={apolloEnabled}
             aiEnabled={aiEnabled}

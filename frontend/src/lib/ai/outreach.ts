@@ -84,8 +84,18 @@ Facts:
 - Name the exact role and company.
 - If they already applied, say so.`;
 
+export type ContactProfile = {
+  name: string;
+  title?: string | null;
+  company?: string | null;
+  linkedinUrl?: string | null;
+  headline?: string | null;
+  school?: string | null;
+};
+
 type DraftContext = {
   application: Application;
+  contactProfile?: ContactProfile | null;
   contactName?: string | null;
   contactTitle?: string | null;
   about?: string | null;
@@ -97,8 +107,11 @@ type DraftContext = {
 export async function draftOutreach(
   context: DraftContext
 ): Promise<OutreachDraft> {
-  const { application: app } = context;
+  const { application: app, contactProfile } = context;
   const applicantName = context.applicantName.trim() || "the applicant";
+
+  const contactName = contactProfile?.name || context.contactName || null;
+  const contactTitle = contactProfile?.title || context.contactTitle || null;
 
   const details = [
     `Applicant name (use this in the email sign-off): ${applicantName}`,
@@ -111,8 +124,11 @@ export async function draftOutreach(
     app.workMode ? `Work mode: ${app.workMode}` : null,
     app.dateApplied ? `Applied on: ${app.dateApplied.slice(0, 10)}` : null,
     app.resumeVersion ? `Resume version sent: ${app.resumeVersion}` : null,
-    context.contactName ? `Contact name: ${context.contactName}` : null,
-    context.contactTitle ? `Contact title: ${context.contactTitle}` : null,
+    contactName ? `Contact name: ${contactName}` : null,
+    contactTitle ? `Contact title: ${contactTitle}` : null,
+    contactProfile?.headline ? `Contact headline: ${contactProfile.headline}` : null,
+    contactProfile?.school ? `Contact school: ${contactProfile.school}` : null,
+    contactProfile?.linkedinUrl ? `Contact LinkedIn: ${contactProfile.linkedinUrl}` : null,
     `Preferred channel: ${context.channel}`,
   ]
     .filter(Boolean)
