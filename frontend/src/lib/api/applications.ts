@@ -4,6 +4,9 @@ import type {
   ApplicationInput,
   SearchPlan,
   Status,
+  Track,
+  Source,
+  WorkMode,
 } from "@/lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -104,12 +107,12 @@ function toApplication(dto: ApplicationResponse): Application {
     company: dto.company,
     role: dto.role,
     jobUrl: dto.jobUrl,
-    track: dto.track as any,
+    track: dto.track as Track,
     resumeVersion: dto.resumeVersion,
     status: dto.status as Status,
-    source: dto.source as any,
+    source: dto.source as Source,
     location: dto.location,
-    workMode: dto.workMode as any,
+    workMode: dto.workMode as WorkMode | null,
     dateApplied: dto.dateApplied,
     nextActionDate: dto.nextActionDate,
     notes: dto.notes,

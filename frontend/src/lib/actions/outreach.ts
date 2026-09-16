@@ -2,11 +2,11 @@
 
 import { isAiConfigured } from "@/lib/ai/model";
 import {
-  draftOutreach,
+  draftOutreach as localDraftOutreach,
   type OutreachDraft,
   type OutreachTemplate,
 } from "@/lib/ai/outreach";
-import { generateSearchPlan } from "@/lib/ai/search-plan";
+import { generateSearchPlan as localGenerateSearchPlan } from "@/lib/ai/search-plan";
 import { getApplication, saveSearchPlan } from "@/lib/data/applications";
 import { getUser } from "@/lib/supabase/server";
 import { consumeQuota } from "@/lib/quota";
@@ -18,8 +18,12 @@ import {
   type ContactSearch,
   type OutreachContact,
 } from "@/lib/outreach/apollo";
+import * as aiService from "@/lib/api/ai-service-client";
 
 import type { ActionResult } from "@/lib/actions/result";
+
+// Feature flag: use ai-service or local implementation
+const USE_AI_SERVICE = process.env.USE_AI_SERVICE === "true";
 
 function message(e: unknown, fallback: string) {
   return e instanceof Error ? e.message : fallback;
@@ -36,7 +40,7 @@ export async function searchPlanAction(
   try {
     const user = await getUser();
     if (!user) return { ok: false, error: "You are signed out." };
-    if (!isAiConfigured) {
+    if (!isAiConfigured && !USE_AI_SERVICE) {
       return {
         ok: false,
         error:
@@ -53,7 +57,23 @@ export async function searchPlanAction(
     const quota = await consumeQuota("ai");
     if (!quota.ok) return quota;
 
-    const plan = await generateSearchPlan(application);
+    let plan: SearchPlan;
+    
+    if (USE_AI_SERVICE) {
+      // Call Python ai-service
+      plan = await aiService.generateSearchPlan({
+        company: application.company,
+        role: application.role,
+        track: application.track,
+        location: application.location,
+        jobUrl: application.jobUrl,
+        notes: application.notes,
+      });
+    } else {
+      // Use local TypeScript implementation
+      plan = await localGenerateSearchPlan(application);
+    }
+    
     await saveSearchPlan(applicationId, plan);
 
     return { ok: true, data: plan };
@@ -123,7 +143,7 @@ export async function draftOutreachAction(input: {
   try {
     const user = await getUser();
     if (!user) return { ok: false, error: "You are signed out." };
-    if (!isAiConfigured) {
+    if (!isAiConfigured && !USE_AI_SERVICE) {
       return {
         ok: false,
         error:
@@ -139,16 +159,43 @@ export async function draftOutreachAction(input: {
     const quota = await consumeQuota("ai");
     if (!quota.ok) return quota;
 
-    const draft = await draftOutreach({
-      application,
-      contactProfile: input.contactProfile,
-      contactName: input.contactName,
-      contactTitle: input.contactTitle,
-      about: input.about,
-      channel: input.channel,
-      template: input.template,
-      applicantName: user.name ?? user.username ?? "",
-    });
+    let draft: OutreachDraft;
+    
+    if (USE_AI_SERVICE) {
+      // Call Python ai-service
+      draft = await aiService.draftOutreach({
+        application: {
+          company: application.company,
+          role: application.role,
+          track: application.track,
+          status: application.status,
+          location: application.location,
+          workMode: application.workMode,
+          dateApplied: application.dateApplied,
+          resumeVersion: application.resumeVersion,
+          notes: application.notes,
+        },
+        contactProfile: input.contactProfile,
+        contactName: input.contactName,
+        contactTitle: input.contactTitle,
+        about: input.about,
+        channel: input.channel,
+        template: input.template,
+        applicantName: user.name ?? user.username ?? "",
+      });
+    } else {
+      // Use local TypeScript implementation
+      draft = await localDraftOutreach({
+        application,
+        contactProfile: input.contactProfile,
+        contactName: input.contactName,
+        contactTitle: input.contactTitle,
+        about: input.about,
+        channel: input.channel,
+        template: input.template,
+        applicantName: user.name ?? user.username ?? "",
+      });
+    }
 
     return { ok: true, data: draft };
   } catch (e) {
