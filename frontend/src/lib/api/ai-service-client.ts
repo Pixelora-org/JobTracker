@@ -34,21 +34,13 @@ async function aiServiceRequest<T>(
 ): Promise<T> {
   const { auth, ...fetchOptions } = options;
   
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  
-  // Add existing headers
-  if (fetchOptions.headers) {
-    const existingHeaders = new Headers(fetchOptions.headers);
-    existingHeaders.forEach((value, key) => {
-      headers[key] = value;
-    });
-  }
+  // Build headers using Headers API for proper type safety
+  const headers = new Headers(fetchOptions.headers);
+  headers.set("Content-Type", "application/json");
   
   // Add authorization if provided
   if (auth) {
-    headers["Authorization"] = `Bearer ${auth}`;
+    headers.set("Authorization", `Bearer ${auth}`);
   }
   
   try {
