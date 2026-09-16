@@ -1,8 +1,15 @@
 """Tests for outreach draft generation endpoint."""
 
+import os
 import pytest
 from httpx import AsyncClient
 from main import app
+
+# Skip tests if no API key (CI environment)
+pytestmark = pytest.mark.skipif(
+    not os.getenv("GOOGLE_GENERATIVE_AI_API_KEY"),
+    reason="GOOGLE_GENERATIVE_AI_API_KEY not set"
+)
 
 
 @pytest.fixture

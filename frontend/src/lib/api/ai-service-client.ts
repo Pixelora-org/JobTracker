@@ -10,7 +10,7 @@ import type {
   OutreachTemplate,
   ContactProfile 
 } from "@/lib/ai/outreach";
-import type { SearchPlan, Application } from "@/lib/types";
+import type { SearchPlan } from "@/lib/types";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8001";
 
