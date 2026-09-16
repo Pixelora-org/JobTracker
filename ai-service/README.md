@@ -33,6 +33,10 @@ This service is scaffolded and ready for migration from the current frontend AI 
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Google Gemini API key | Yes | `AIza...` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | No | `http://localhost:3000,https://pipeline.vercel.app` |
 | `PORT` | HTTP port | No | `8001` (default) |
+| `AI_MODEL` | Gemini model to use | No | `gemini-3.1-flash-lite` (default) |
+| `REQUIRE_AUTH` | Enable Clerk JWT validation | No | `false` (dev), `true` (prod) |
+| `CLERK_PUBLISHABLE_KEY` | Clerk publishable key (if auth enabled) | No | `pk_test_...` |
+| `CLERK_SECRET_KEY` | Clerk secret key (if auth enabled) | No | `sk_test_...` |
 
 ### Getting API Keys
 
@@ -74,11 +78,16 @@ docker run -p 8001:8001 \
 
 ## Current Endpoints
 
-All endpoints currently implemented:
-
+### Health & Status
 - `GET /` - Root endpoint, service info
 - `GET /health` - Health check with AI configuration status
 - `GET /api/v1/health` - Versioned health check
+
+### Outreach AI (✅ Implemented)
+- `POST /api/v1/outreach/draft` - Generate cold outreach drafts (LinkedIn + email)
+
+### Search Planning (✅ Implemented)
+- `POST /api/v1/search-plan/generate` - Generate contact search strategies
 
 ## Testing
 
@@ -133,16 +142,22 @@ The frontend currently has working AI features in TypeScript:
 
 **DO NOT break production outreach/strategy in one PR.** Migrate incrementally behind feature flags or as parallel implementations.
 
-#### Phase 1: Scaffold Service (THIS PR)
+#### Phase 1: Outreach Agent v1 Migration (✅ THIS PR - COMPLETED)
 - ✅ Create Python FastAPI service
 - ✅ Health endpoints
 - ✅ Dockerfile for Railway
-- ✅ Basic tests
-- ✅ CI workflow
+- ✅ Implement `POST /api/v1/outreach/draft`
+- ✅ Implement `POST /api/v1/search-plan/generate`
+- ✅ Frontend AI service client (`lib/api/ai-service-client.ts`)
+- ✅ Update actions to route through ai-service (with feature flag)
+- ✅ Comprehensive tests
 - ✅ Documentation
-- **Frontend unchanged**: Still calls local AI functions
 
-#### Phase 2: First Endpoint Migration (NEXT - Teammate Owns)
+**Migration Status**: Outreach Agent v1 is **ready to migrate**. Frontend can now call ai-service instead of running Gemini locally.
+
+**Feature Flag**: Set `USE_AI_SERVICE=true` in frontend `.env.local` to enable ai-service routing.
+
+#### Phase 2: Enable in Production (NEXT)
 **Suggested first candidate**: `outreach.ts` (clean input/output, high value)
 
 1. Implement `POST /api/v1/outreach/draft` in Python
